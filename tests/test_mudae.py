@@ -40,6 +40,12 @@ class Llegir(Base):
         self.assertEqual(mudae.lines(self.tmp / "wishlist.txt"), [("Albedo", True), ("Nero", False), ("Rukia Kuchiki", False),
                                                                   ("Yoruichi Shihōin", False), ("Remus Lupin", False)])
 
+    def test_wishlist_marca_els_teus(self):  # ✅ al $wl: ja és teu, encara que el $imaso d'abans digui lliure
+        self.write("series/ABBA.txt", "Björn Ulvaeus\nBenny Andersson\n")
+        os.utime(self.tmp / "series/ABBA.txt", (1, 1))
+        self.write("wishlist.txt", "jo's Wishlist - 2/15\nBenny Andersson\nBjörn Ulvaeus ✅\n")
+        self.assertEqual([(r["name"], r["owner"]) for r in mudae.read_series()], [("Björn Ulvaeus", "jo"), ("Benny Andersson", "")])
+
     def test_fitxer_que_no_existeix(self):
         self.assertEqual(mudae.lines(self.tmp / "no.txt"), [])
 

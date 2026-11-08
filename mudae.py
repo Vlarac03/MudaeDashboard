@@ -211,9 +211,14 @@ def read_series():
     spec = set(specials())
     hp = DADES / "harem.txt"
     harem, ht = {n for n, _ in lines(hp)}, hp.stat().st_mtime if hp.exists() else 0
+    wp = DADES / "wishlist.txt"  # el $wl marca amb ✅ els que ja són teus
+    wl_mine = {re.sub(r"^\d+\.\s+", "", l.split("✅")[0].replace("⭐", "")).strip()
+               for l in wp.read_text(encoding="utf-8-sig").splitlines() if "✅" in l} if wp.exists() else set()
+    wt = wp.stat().st_mtime if wp.exists() else 0
     for f in sorted((DADES / "series").glob("*.txt")):
         seen, serie = {}, f.stem.translate(FROM_FILE)
         fresh = ht >= f.stat().st_mtime  # harem més nou que la sèrie: hi mana ell (has reclamat algú i no has tornat a fer el $imaso)
+        wl_fresh = wt >= f.stat().st_mtime
         for line, _ in lines(f):
             m = CLAIM.match(line)
             h = HEART_ONLY.match(line)
@@ -221,6 +226,8 @@ def read_series():
             if owner.casefold() == ME.casefold():  # Mudae escriu els noms en minúscula («pep»), tu pots haver posat «Pep»
                 owner = ME
             if name in harem and (serie in spec or fresh):  # a les especials, sempre (no hi ha cap $imaso que ho digui)
+                owner = ME
+            if name in wl_mine and wl_fresh:
                 owner = ME
             if name not in seen:
                 seen[name] = len(rows)
