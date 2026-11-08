@@ -211,14 +211,9 @@ def read_series():
     spec = set(specials())
     hp = DADES / "harem.txt"
     harem, ht = {n for n, _ in lines(hp)}, hp.stat().st_mtime if hp.exists() else 0
-    wp = DADES / "wishlist.txt"  # el $wl marca amb ✅ els que ja són teus
-    wl_mine = {re.sub(r"^\d+\.\s+", "", l.split("✅")[0].replace("⭐", "")).strip()
-               for l in wp.read_text(encoding="utf-8-sig").splitlines() if "✅" in l} if wp.exists() else set()
-    wt = wp.stat().st_mtime if wp.exists() else 0
     for f in sorted((DADES / "series").glob("*.txt")):
         seen, serie = {}, f.stem.translate(FROM_FILE)
         fresh = ht >= f.stat().st_mtime  # harem més nou que la sèrie: hi mana ell (has reclamat algú i no has tornat a fer el $imaso)
-        wl_fresh = wt >= f.stat().st_mtime
         for line, _ in lines(f):
             m = CLAIM.match(line)
             h = HEART_ONLY.match(line)
@@ -226,8 +221,6 @@ def read_series():
             if owner.casefold() == ME.casefold():  # Mudae escriu els noms en minúscula («pep»), tu pots haver posat «Pep»
                 owner = ME
             if name in harem and (serie in spec or fresh):  # a les especials, sempre (no hi ha cap $imaso que ho digui)
-                owner = ME
-            if name in wl_mine and wl_fresh:
                 owner = ME
             if name not in seen:
                 seen[name] = len(rows)
@@ -1906,6 +1899,7 @@ function millRead(text) {
   if (got.nf != null && !got.f) Object.assign(got, towerFromKt(M, got.nf));  // si el $kt porta les marques, manen elles
   if (got.opp && got.opp.name) got.opps = Object.assign({}, M.opps, { [got.opp.name]: got.opp.levels });
   if (got.bonus) got.bonus = mergeBonus(M.bonus, got.bonus);
+  if (got.keys) got.keys = mergeBonus(M.keys, got.keys).sort((a, b) => b[1] - a[1]);  // el $mmy= va per pàgines: s'ajunten
   Object.assign(M, got);
   if (got.ktCost && !M.tv && (M.tv = towerGuess(M))) M.nf = towerNext(M).built;
   millSave(); millDraw();
@@ -2950,6 +2944,15 @@ def save_paste(kind, serie, text, new=()):
         else:
             path.write_text(old, encoding="utf-8")
         raise ValueError(t("No he trobat cap nom al text enganxat. Copia el missatge de Mudae sencer."))
+    if kind == "wishlist":  # el $wl marca amb ✅ els que ja són teus: s'apunta a la sèrie, i no es perd si després el treus
+        mine = {r["name"] for r in read_series() if r["owner"] == ME}
+        for l in text.splitlines():
+            name = re.sub(r"^\d+\.\s+", "", l.split("✅")[0].replace("⭐", "")).strip() if "✅" in l else ""
+            if name and name not in mine:
+                try:
+                    mark_received(name)
+                except ValueError:
+                    pass  # no és a cap sèrie teva
     meta = read_meta()
     today = dt.date.today().isoformat()
     if kind == "serie":

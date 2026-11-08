@@ -187,6 +187,9 @@ const mergeBonus = new Function(js.match(/const mergeBonus = [^\n]*/)[0] + '\nre
 const both = mergeBonus(readMudae(pg1, 5000).bonus, readMudae('2. ' + pg2, 5000).bonus);
 assert.equal(both.length, 8);
 assert.equal(mergeBonus(both, [['$oh bono diario', '+80 spheres']]).find(([l]) => l === '$oh bono diario')[1], '+80 spheres');  // la nova mana
+// $mmy= per pàgines: la 2a s'ajunta amb la 1a (abans l'esborrava) i el que torna a sortir mana
+const k1 = readMudae('Hello Kitty ·  (12)\nLanie Parish ·  (1)\nPágina 1/2', 5000).keys, k2 = readMudae('Rui (HOHD) ·  (3)\nLanie Parish ·  (2)\nPágina 2/2', 5000).keys;
+assert.deepEqual(mergeBonus(k1, k2).sort((a, b) => b[1] - a[1]), [['Hello Kitty', 12], ['Rui (HOHD)', 3], ['Lanie Parish', 2]]);
 assert.equal(readMudae('[LVL 3] Una megasphere tiene un 1/50\n · Megaspheres: 0', 5000).bonus, undefined);  // el $os no és el $bonus
 // el $bonus tal com surt en copiar-lo de Discord (Victor, 01/11/2026): cada línia comença amb el codi de l'emoji
 const clip = `:addroll: · Rolls por hora: +8 (6 $k + 1 $kl + 1 $kt)
