@@ -1,6 +1,8 @@
 # Dades personals: no es pugen mai
 dades/
 Mudae - estrategia.xlsx
+*.xlsx
+.env*
 dashboard.html
 
 # Generat
