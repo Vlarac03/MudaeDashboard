@@ -16,13 +16,13 @@ class Base(unittest.TestCase):
 
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
-        self.old = (mudae.DADES, mudae.ME)
-        mudae.DADES, mudae.ME = self.tmp, "jo"
+        self.old = (mudae.DADES, mudae.ME, mudae.LANG)
+        mudae.DADES, mudae.ME, mudae.LANG = self.tmp, "jo", "ca"  # els missatges d'algunes proves surten en català
         (self.tmp / "series").mkdir()
         (self.tmp / "series-sobrants.json").write_text("{}", encoding="utf-8")
 
     def tearDown(self):
-        mudae.DADES, mudae.ME = self.old
+        mudae.DADES, mudae.ME, mudae.LANG = self.old
         shutil.rmtree(self.tmp)
 
     def write(self, rel, text):
@@ -341,6 +341,26 @@ class Seguretat(unittest.TestCase):
         self.assertEqual(status("/mudae.py"), 404)
         self.assertEqual(status("/"), 404)                        # sense llistat de la carpeta
         self.assertEqual(status("/ping", host="evil.example:8789"), 403)  # DNS rebinding
+        head = urllib.request.Request(base + "/mudae.py", method="HEAD")  # HEAD no es salta les restriccions del GET
+        with self.assertRaises(urllib.error.HTTPError) as cm:
+            urllib.request.urlopen(head, timeout=3)
+        self.assertEqual(cm.exception.code, 405)
+        import http.client
+
+        def post(length):  # POST amb un Content-Length que no és de fiar (o cap)
+            c = http.client.HTTPConnection("127.0.0.1", port, timeout=3)
+            c.putrequest("POST", "/refa")
+            c.putheader("Content-Type", "application/json")
+            if length is not None:
+                c.putheader("Content-Length", length)
+            c.endheaders()
+            code = c.getresponse().status
+            c.close()
+            return code
+        self.assertEqual(post(None), 400)
+        self.assertEqual(post("-5"), 400)
+        self.assertEqual(post("abc"), 400)
+        self.assertEqual(post(str(mudae.MAX_POST + 1)), 413)
         quit_req = urllib.request.Request(base + "/quit", data=b"{}", headers={"Content-Type": "application/json"})
         urllib.request.urlopen(quit_req, timeout=3)
 
@@ -350,12 +370,30 @@ class Seguretat(unittest.TestCase):
         buf = io.BytesIO()
         with zipfile.ZipFile(buf, "w") as z:
             for n in ("mudae-dashboard-main/", "mudae-dashboard-main/mudae.py", "mudae-dashboard-main/lib/x.py",
-                      "mudae-dashboard-main/dades/config.json", "mudae-dashboard-main/../fora.py", "mudae-dashboard-main/C:/x.py"):
+                      "mudae-dashboard-main/dades/config.json", "mudae-dashboard-main/Dades/config.json",
+                      "mudae-dashboard-main/DADES./config.json", "mudae-dashboard-main/../fora.py", "mudae-dashboard-main/C:/x.py"):
                 z.writestr(n, "")
             z.writestr("mudae-dashboard-main/Actualitza.bat", "@echo off\necho hola\n")
         files = mudae.zip_files(zipfile.ZipFile(buf))
         self.assertEqual(sorted(files), ["Actualitza.bat", "lib/x.py", "mudae.py"])
         self.assertEqual(files["Actualitza.bat"], b"@echo off\r\necho hola\r\n")  # cmd vol CRLF
+
+
+class Excel(Base):
+    def test_excel_malmes_es_guarda_com_a_bak_i_es_continua(self):
+        old = (mudae.XLSX, mudae.DASH, mudae.HIST)
+        mudae.XLSX, mudae.DASH, mudae.HIST = self.tmp / "e.xlsx", self.tmp / "d.html", self.tmp / "h.csv"
+        try:
+            mudae.XLSX.write_bytes(b"no soc un zip")
+            (self.tmp / "e.bak").write_bytes(b"bak anterior")
+            self.write("series/ABBA.txt", "Agnetha\nBenny\n")
+            mudae.write_excel(mudae.build_data())
+            self.assertEqual((self.tmp / "e.bak").read_bytes(), b"bak anterior")  # no es trepitja
+            self.assertEqual((self.tmp / "e.bak2").read_bytes(), b"no soc un zip")
+            self.assertFalse((self.tmp / "e.tmp").exists())
+            mudae.old_inputs()  # l'Excel nou ja es pot llegir
+        finally:
+            mudae.XLSX, mudae.DASH, mudae.HIST = old
 
 
 class Ordres(unittest.TestCase):

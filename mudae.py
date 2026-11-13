@@ -29,6 +29,7 @@ from openpyxl.worksheet.datavalidation import DataValidation
 
 DIR = Path(__file__).resolve().parent
 DADES = DIR / "dades"
+DADES.mkdir(exist_ok=True)  # si falta (còpia nova), que no peti
 XLSX = DIR / "Mudae - estrategia.xlsx"
 DASH = DIR / "dashboard.html"
 HIST = DADES / "historial.csv"
@@ -235,7 +236,18 @@ def old_inputs():
     old = {"col": {}, "col_name": {}, "trade": {}, "sob": {}}
     if not XLSX.exists():
         return old
-    wb = load_workbook(XLSX)
+    try:
+        wb = load_workbook(XLSX)
+    except PermissionError:
+        raise
+    except Exception:  # Excel corrupte (BadZipFile, KeyError, XML…): es guarda com a .bak i es continua amb un de nou
+        bak, n = XLSX.with_suffix(".bak"), 1
+        while bak.exists():  # sense trepitjar un .bak anterior
+            n += 1
+            bak = XLSX.with_suffix(f".bak{n}")
+        os.replace(XLSX, bak)
+        print("AVIS: " + t("No he pogut llegir l'Excel (potser està malmès): l'he guardat com a «{bak}» i en faig un de nou.", bak=bak.name))
+        return old
     ws = sheet(wb, "Col·lecció")
     for r in ws.iter_rows(min_row=2, values_only=True) if ws else ():
         if r[1]:
@@ -485,10 +497,14 @@ def write_excel(d):
                 if c.font.name != F:
                     c.font = Font(name=F, bold=c.font.bold, color=c.font.color, size=c.font.size)
     wb.calculation = CalcProperties(fullCalcOnLoad=True)  # openpyxl no desa resultats: Excel els calcula en obrir
+    tmp = XLSX.with_suffix(".tmp")  # es desa a part i després es canvia: un error a mig desar no fa malbé l'Excel bo
     try:
-        wb.save(XLSX)
+        wb.save(tmp)
+        os.replace(tmp, XLSX)
     except PermissionError:
         raise RuntimeError(t("No puc desar l'Excel: el tens obert. Tanca'l i torna-ho a provar."))
+    finally:
+        tmp.unlink(missing_ok=True)
 
 
 # ---------------------------------------------------------------- historial
@@ -986,7 +1002,7 @@ button.pill:disabled { opacity:.45; cursor:default; }
 .menu button:disabled { opacity:.45; cursor:default; }
 
 /* barra fixa: pestanyes i, a la dreta, quan tornen les tirades i el reclam (es veu des de totes les pestanyes) */
-.bar { position:sticky; top:10px; z-index:4; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; }
+.bar { position:sticky; top:10px; z-index:4; min-width:0; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; }
 .clock { margin:0; padding:8px 14px; border-radius:50px; font-size:13px; color:var(--ink-2); font-variant-numeric:tabular-nums;
   background:rgba(28,28,32,.75); backdrop-filter:blur(22px); -webkit-backdrop-filter:blur(22px); border:1px solid var(--glass-b); box-shadow:var(--sh); }
 .clock:empty { display:none; }
@@ -1025,7 +1041,7 @@ details.panel { display:block; }
 .tag.accent { background:var(--accent-soft); color:var(--accent); }
 
 /* pestanyes: una vista cada vegada */
-.nav { display:flex; gap:4px; padding:5px; border-radius:50px; width:fit-content; max-width:100%; overflow-x:auto;
+.nav { display:flex; min-width:0; gap:4px; padding:5px; border-radius:50px; width:fit-content; max-width:100%; overflow-x:auto;
   background:rgba(28,28,32,.75); backdrop-filter:blur(22px); -webkit-backdrop-filter:blur(22px); border:1px solid var(--glass-b); box-shadow:var(--sh); }
 .nav button { padding:8px 16px; border-radius:50px; border:0; background:transparent; color:var(--muted); font-size:13.5px; font-weight:600; cursor:pointer; white-space:nowrap;
   transition:background .2s, color .2s; }
@@ -3102,6 +3118,7 @@ def mark_free(name):
 
 
 PUBLIC = {"/dashboard.html", "/oc.html", "/oq.html"}  # l'únic que el servidor deixa veure
+MAX_POST = 5_000_000  # bytes: el que enganxes de Mudae són uns pocs KB
 PORT = 8766  # (el 8765 l'ocupaven servidors vells que no es podien tancar sols)
 VERSION = str(Path(__file__).stat().st_mtime_ns)  # canvia cada vegada que es modifica aquest fitxer
 IDLE_SECONDS = 150  # el tauler avisa cada 20 s; amb la pestanya en segon pla el navegador pot espaiar-ho fins a 1 min
@@ -3159,7 +3176,7 @@ def zip_files(z):
     out = {}
     for n in z.namelist():
         p = n.split("/", 1)[1] if "/" in n else ""  # treu la carpeta «mudae-dashboard-main/»
-        if not p or p.endswith("/") or p.startswith(("dades/", "/")) or ".." in p.split("/") or ":" in p or "\\" in p:
+        if not p or p.endswith("/") or p.startswith("/") or p.split("/")[0].rstrip(". ").lower() == "dades" or ".." in p.split("/") or ":" in p or "\\" in p:
             continue
         data = z.read(n)
         if p.endswith(".bat"):  # cmd llegeix malament els .bat sense CRLF
@@ -3274,6 +3291,9 @@ def serve(port=PORT):
             self.send_header("Access-Control-Allow-Private-Network", "true")
             self.end_headers()
 
+        def do_HEAD(self):  # el de la classe base no mira ni el Host ni PUBLIC: no el necessitem
+            self.send_error(405)
+
         def do_GET(self):
             if not self.host_ok():
                 return
@@ -3292,7 +3312,13 @@ def serve(port=PORT):
             # Només JSON: així una web de fora no pot fer clic als botons per tu (el navegador ho bloqueja)
             if not (self.headers.get("Content-Type") or "").startswith("application/json"):
                 return self.send_error(415)
-            raw = self.rfile.read(int(self.headers.get("Content-Length") or 0)).decode("utf-8")
+            try:
+                size = int(self.headers.get("Content-Length") or "")
+            except ValueError:
+                size = -1  # absent o no numèric
+            if size < 0 or size > MAX_POST:
+                return self.send_error(413 if size > MAX_POST else 400)
+            raw = self.rfile.read(size).decode("utf-8")
             if self.path == "/quit":  # un servidor més nou vol el port
                 self.reply({"ok": True})
                 return threading.Thread(target=httpd.shutdown, daemon=True).start()
