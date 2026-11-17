@@ -500,11 +500,21 @@ def write_excel(d):
     tmp = XLSX.with_suffix(".tmp")  # es desa a part i després es canvia: un error a mig desar no fa malbé l'Excel bo
     try:
         wb.save(tmp)
-        os.replace(tmp, XLSX)
+        for intent in range(6):  # l'antivirus o l'indexador de Windows bloquegen el fitxer un instant
+            try:
+                os.replace(tmp, XLSX)
+                break
+            except PermissionError:
+                if intent == 5:
+                    raise
+                time.sleep(0.5)
     except PermissionError:
         raise RuntimeError(t("No puc desar l'Excel: el tens obert. Tanca'l i torna-ho a provar."))
     finally:
-        tmp.unlink(missing_ok=True)
+        try:
+            tmp.unlink(missing_ok=True)
+        except OSError:
+            pass  # un provisional que sobra no ha de tapar l'error de veritat
 
 
 # ---------------------------------------------------------------- historial
