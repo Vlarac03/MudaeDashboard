@@ -5,6 +5,7 @@ Les variables entre claus ({n}, {name}…) s'han de mantenir iguals.
 """
 
 ES = {
+    "El teu $starwish surt un {p} % més (aprox.)": "Tu $starwish sale un {p} % más (aprox.)",
     "El teu $starwish surt un {p} % més": "Tu $starwish sale un {p} % más",
     "Menys límit de $limroul: {a} $wa, {a} $ha, {g} $wg, {g} $hg": "Menos límite de $limroul: {a} $wa, {a} $ha, {g} $wg, {g} $hg",
     "+{p} % de segona clau si el personatge és a la wishlist": "+{p} % de segunda llave si el personaje está en la wishlist",
@@ -671,6 +672,7 @@ ES = {
 }
 
 EN = {
+    "El teu $starwish surt un {p} % més (aprox.)": "Your $starwish shows up {p}% more (approx.)",
     "El teu $starwish surt un {p} % més": "Your $starwish shows up {p}% more",
     "Menys límit de $limroul: {a} $wa, {a} $ha, {g} $wg, {g} $hg": "Lower $limroul limits: {a} $wa, {a} $ha, {g} $wg, {g} $hg",
     "+{p} % de segona clau si el personatge és a la wishlist": "+{p}% chance of a second key if the character is wished",

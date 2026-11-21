@@ -143,6 +143,7 @@ for (let n = 1; n <= 12; n++) assert.equal(towerFx(n, 1), null);  // la torre 1 
 const fx = (n, t) => towerFx(n, t);
 assert.equal(fx(2, 2), 'El teu $starwish surt un 25 % més'); assert.equal(fx(2, 3), 'El teu $starwish surt un 20 % més');
 assert.equal(fx(2, 12), 'El teu $starwish surt un 3 % més'); assert.equal(fx(2, 20), 'El teu $starwish surt un 1 % més');
+assert.equal(fx(2, 21), 'El teu $starwish surt un 1 % més (aprox.)');  // la wiki només arriba a la torre 20
 assert.equal(fx(3, 2), 'Menys límit de $limroul: 140 $wa, 140 $ha, 70 $wg, 70 $hg');
 assert.equal(fx(1, 5), null); assert.equal(fx(4, 2), null);   // +2 llocs i +10 % de segona clau: igual que a la 1
 assert.match(fx(4, 3), /^\+5 % de segona clau/); assert.match(fx(4, 22), /^\+5 % de segona clau/); assert.match(fx(4, 23), /tercera clau/);
@@ -157,18 +158,25 @@ assert.equal(fx(11, 10), null); assert.match(fx(11, 11), /^\+30 %/); assert.matc
 assert.equal(fx(12, 2), 'Desbloqueja $colorll i $colorsl'); assert.match(fx(12, 3), /\+165 de kakera/); assert.match(fx(12, 10), /\+165 de kakera/); assert.match(fx(12, 11), /\+3 de kakera/);
 // torre: 12 pisos per torre; el $kt diu el total i d'aquí surt la torre on ets
 const TOWER = [11, 8, 7, 6, 5, 1, 4, 2, 9, 10, 3, 12];
-const [towerNext, towerFromKt] = new Function('TOWER', js.match(/const X10_FROM = [^\n]*/)[0] + '\n' + fn('towerNext') + fn('towerFromKt').replace(/\n$/, '') + '\nreturn [towerNext, towerFromKt];')(TOWER);
+const [towerNext, towerFromKt] = new Function('TOWER', js.match(/const X10_FROM = [^\n]*/)[0] + '\n' + fn('towerOrder') + fn('towerNext') + fn('towerFromKt').replace(/\n$/, '') + '\nreturn [towerNext, towerFromKt];')(TOWER);
 assert.deepEqual(towerNext({ f: [11, 8], tv: 5000 }), { tw: 0, built: 2, ok: true, cost: 15000, rec: 7 });
 assert.deepEqual(towerNext({ t: 1, f: [], tv: 5000 }), { tw: 1, built: 12, ok: true, cost: 65000, rec: 11 });  // torre 2: torna a començar per l'11
 assert.deepEqual(towerFromKt({ f: [11, 8] }, 14), { t: 1, f: [] });  // 14 pisos: torre 2, els marcats eren de la 1
 assert.deepEqual(towerFromKt({ t: 1, f: [11, 8] }, 14), { t: 1, f: [11, 8] });
 assert.equal(towerNext({ f: [8], tv: null }).cost, null);  // sense preu base, no s'inventa el preu
+// l'ordre recomanat canvia amb la torre: a la 5 el 7 abans que el 8, a la 9-10 el 5 va al final, a la 11 el 11 (kakera de Bronze/Silver IV) primer
+assert.equal(towerNext({ nf: 48, f: [], tv: 5000 }).rec, 7);                       // torre 5, buida
+assert.equal(towerNext({ nf: 49, f: [7], tv: 5000 }).rec, 8);
+assert.equal(towerNext({ nf: 96, f: [], tv: 5000 }).rec, 7);                       // torre 9
+assert.equal(towerNext({ nf: 120, f: [], tv: 5000 }).rec, 11);                     // torre 11
+assert.equal(towerNext({ nf: 131, f: [11, 7, 8, 1, 6, 4, 2, 9, 10, 5, 12], tv: 5000 }).rec, 3);  // torre 11, l'últim
+assert.equal(towerNext({ nf: 12, f: [], tv: 5000 }).rec, 11);                      // torre 2: l'ordre de sempre (el de TOWER)
 // el $kt (sense marques) diu 18 pisos i en tens 5 de marcats: el preu és el del $kt, i no recomana cap pis (podria ser un que ja tens)
 assert.deepEqual(towerNext({ t: 1, f: [2, 7, 8, 10, 11], nf: 18, tv: 5000 }), { tw: 1, built: 18, ok: false, cost: 95000, rec: null });
 assert.deepEqual(towerFromKt({ t: 1, f: [2, 7, 8, 10, 11] }, 15), { t: 1, f: [] });  // més marques que pisos: no són bones
 assert.deepEqual(towerFromKt({ t: 1, f: [2, 7] }, 17), { t: 1, f: [2, 7] });  // en falten: les deixa i en marques més
 // el preu base surt del $kt si has marcat els pisos: 7 pisos i el següent costa 40.000 → 5.000
-const towerGuess = new Function('TOWER', js.match(/const X10_FROM = [^\n]*/)[0] + '\n' + fn('towerNext') + fn('towerGuess') + 'return towerGuess;')(TOWER);
+const towerGuess = new Function('TOWER', js.match(/const X10_FROM = [^\n]*/)[0] + '\n' + fn('towerOrder') + fn('towerNext') + fn('towerGuess') + 'return towerGuess;')(TOWER);
 assert.equal(towerGuess({ f: [1, 2, 4, 7, 8, 10, 11], ktCost: 40000 }), 5000);
 assert.equal(towerGuess({ f: [], ktCost: 40000 }), null);  // sense pisos marcats no ho sabem
 assert.equal(towerGuess({ f: [8], ktCost: 300000 }), null);  // fora de 5.000-50.000: els pisos marcats no quadren
