@@ -1644,6 +1644,8 @@ const shopMax = () => 10, shopCost = (n, l) => 4000 * (l + 1);
 // Taula de preus de la wiki («Kakera Tower/Prices»): el pis N costa preu base × N fins al 912 (la torre 76 sencera); del 913 (torre 77) al 1.200 (torre 100, la darrera), x10
 const X10_FROM = 76;  // torres acabades a partir de les quals el preu va x10
 const STALE_DAYS = 7;  // shortcut: llindar triat per Claude; canviar-lo si Victor en vol un altre
+// Després de la 10 (que té límit, no passa de 100 personatges): primer les que tornen esferes (9 i 5), després kakera i claus (4, 3, 2), la resta al final. Proposta de Claude.
+const POST10 = [9, 5, 4, 3, 2, 8, 1, 6, 7];
 const KEYS_OFTEN = 10;  // shortcut: llindar triat per Claude (una clau cada cop que et surt un personatge teu); canviar-lo si Victor en vol un altre
 const num = t => Number(String(t).replace(/[^\d]/g, ''));
 const fmtK = n => n.toLocaleString(document.documentElement.lang);
@@ -1942,6 +1944,17 @@ function millDraw() {
   const put10 = (names, budget) => names.map((n, i) => `<li><button class="cmd" data-copy="${esc('$opp ' + n)}">${esc('$opp ' + n)}</button> <b>${esc(T('Millora {n}', { n: 10 }))}</b> · ${fmtK(1000)}`
     + (about(n) ? ` <span class="muted" style="font-size:13px">· ${esc(about(n))}</span>` : '')
     + pay(1000 * (i + 1), budget) + (i ? '' : `<br><span class="muted" style="font-size:13px">${esc(PDESC[10])}</span>`) + '</li>').join('');
+  // La botiga, quan ja tens la 10 a tots (abans, la 10 es paga més de pressa). I només el que et serveix: la 2 (megaesferes) va sola;
+  // la 1-9 reforça aquella millora dels personatges, així que només si algun personatge teu la té; la 10, si en tens algun de millorat del tot.
+  const opsLv = Object.values(M.opps || {});
+  const useful = n => n === 2 || (n === 10 ? opsLv.some(lv => lv.every((v, i) => v >= perkMax(i + 1))) : opsLv.some(lv => lv[n - 1] > 0));
+  const shopBuys = M.shop ? cheapestBuys(M.shop, SORD.filter(useful), shopMax, shopCost) : [];
+  // Fase final: la 10 a tots i la botiga al màxim en el que et serveix. Queden les millores 1-9 als personatges, que fan útil més botiga.
+  const stage3 = done10 && !!M.shop && !shopBuys.length;
+  // La botiga només reforça el que ja has posat als personatges, i el primer nivell costa 4.000: abans, les 9, 5, 4, 3 i 2 als que et surten sovint (wiki «Perks / Level»)
+  const perksDone = Object.entries(M.opps || {}).filter(([n]) => (keyOf[n] || 0) >= KEYS_OFTEN).every(([, lv]) => [9, 5, 4, 3, 2].every(n => lv[n - 1] >= perkMax(n)));
+  const shopOk = done10 && perksDone;
+  const STAGE3 = T('Ja tens la 10 a tots i la botiga al màxim en el que et serveix. Ara, les millores 1-9 als personatges, primer als que et surten més: cada una que posis fa útil un nivell més de la botiga ($os).');
   let perkHtml;
   const R = M.opp && !often && !done10 ? refundPlan(M.opp.levels) : null;
   if (!M.opp) perkHtml = li(T('Enganxa un $opp <personatge> per veure-hi els nivells'));
@@ -1952,21 +1965,26 @@ function millDraw() {
       + put10([name, ...cands].slice(0, Math.max(1, Math.min(4, Math.floor(budget / 1000)))), budget);
     if (budget >= 1000) ready.push(['perkBox', T('Esferes'), '$or ' + name + ' · ' + T('Millora {n}', { n: 10 }), 1000]);
   } else {
-    const buys = nextBuys(M.opp.levels, often ? PORD : [10], perkMax, perkCost);
+    const buys = nextBuys(M.opp.levels, done10 && (often || stage3) ? POST10 : often || stage3 ? PORD : [10], perkMax, perkCost);
     perkHtml = buyList(buys, ('$opp ' + M.opp.name).trim(), PDESC, 'perk');
     if (buys.length && M.sp >= buys[0].cost) ready.push(['perkBox', T('Esferes'), `${M.opp.name} · ${T('Millora {n}', { n: buys[0].n })} · LVL ${buys[0].l}`, buys[0].cost]);
-    if (!perkHtml && !often) {  // aquest ja té la 10: la 10, a uns altres, o, si ja la tenen tots, la botiga
-      perkHtml = done10 ? li(T('Para de gastar en personatges que no et surten sovint: ara, la botiga d\'esferes ($os).'))
+    if (!perkHtml && !often && !stage3) {  // aquest ja té la 10: la 10, a uns altres, o, si ja la tenen tots, la botiga
+      perkHtml = done10 ? li(shopOk ? T('Para de gastar en personatges que no et surten sovint: ara, la botiga d\'esferes ($os).')
+          : T('Aquest no et surt sovint: no hi gastis més. Posa les millores 9, 5, 4, 3 i 2 als que et surten més (mira el $mmy=); la botiga, després.'))
         : put10(cands) || li(pick ? T('Els teus personatges de {s} ja la tenen tots (dels que has enganxat amb el $opp): tria una altra sèrie.', { s: pick })
           : T('Posa la millora 10 a un altre personatge teu que no regalaràs: $opp <personatge>.'));
       if (!done10 && cands.length && M.sp >= 1000) ready.push(['perkBox', T('Esferes'), `${cands[0]} · ${T('Millora {n}', { n: 10 })}`, 1000]);
     }
-    perkHtml ||= li(T('Aquest personatge ja el tens millorat del tot.'));
+    if (!perkHtml) {  // millorat del tot: a la fase final, els següents amb més claus que encara no ho són
+      const nextMax = stage3 ? (M.keys || []).map(([n]) => n).filter(n => n !== M.opp.name && !(M.opps && M.opps[n] && M.opps[n].every((v, i) => v >= perkMax(i + 1)))).slice(0, 3) : [];
+      perkHtml = li(T('Aquest personatge ja el tens millorat del tot.')) + nextMax.map(n => `<li><button class="cmd" data-copy="${esc('$opp ' + n)}">${esc('$opp ' + n)}</button> <span class="muted" style="font-size:13px">${esc(about(n))}</span></li>`).join('');
+    }
   }
   if (M.opp) {  // per què
     perkHtml += '<li class="muted">' + esc(often
       ? T('Et surt sovint ({n} claus): les millores 1-5 hi valen la pena.', { n: kOpp })
-      : done10 ? T('Ja tens la millora 10 a {n} personatges: tots els de les teves col·leccions, o 100. A partir d\'aquí, la botiga ($os) i les millores 1-9 als que et surten sovint.', { n: n10 })
+      : stage3 ? STAGE3
+      : done10 ? T('Ja tens la millora 10 a {n} personatges: tots els de les teves col·leccions, o 100. A partir d\'aquí, les millores 9, 5, 4, 3 i 2 als que et surten sovint i, després, la botiga ($os).', { n: n10 })
       : T('Primer, la millora 10 a tots els teus personatges que no regalaràs (en tens {n} de {t}): +20 esferes cada dia cadascun, encara que no et surtin. Les altres només funcionen quan et surt el personatge: posa-les als que tinguin 10 claus o més.', { n: n10, t: goal10 })) + '</li>';
   }
   const top5 = (M.keys || []).slice(0, 5);
@@ -1985,16 +2003,12 @@ function millDraw() {
     el.textContent = v === undefined ? '' : 'LVL ' + v + '/10';
     el.className = 'tag' + (v >= 10 ? ' good' : '');
   });
-  // La botiga, quan ja tens la 10 a tots (abans, la 10 es paga més de pressa). I només el que et serveix: la 2 (megaesferes) va sola;
-  // la 1-9 reforça aquella millora dels personatges, així que només si algun personatge teu la té; la 10, si en tens algun de millorat del tot.
-  const opsLv = Object.values(M.opps || {});
-  const useful = n => n === 2 || (n === 10 ? opsLv.some(lv => lv.every((v, i) => v >= perkMax(i + 1))) : opsLv.some(lv => lv[n - 1] > 0));
-  const shopBuys = M.shop ? cheapestBuys(M.shop, SORD.filter(useful), shopMax, shopCost) : [];
-  $id('shopNext').innerHTML = (done10 ? li(T('Ara sí: la botiga. Et recomano només les que reforcen millores que ja tens als teus personatges.'))
+  $id('shopNext').innerHTML = (shopOk ? li(T('Ara sí: la botiga. Et recomano només les que reforcen millores que ja tens als teus personatges.'))
+      : done10 ? '<li class="muted">' + esc(T('Encara no: abans, les millores 9, 5, 4, 3 i 2 als personatges que et surten més. La botiga només reforça el que ja hi has posat, i cada nivell costa 4.000 o més.')) + '</li>'
       : '<li class="muted">' + esc(T('Encara no: abans, la millora 10 als teus personatges (en tens {n} de {t}). Cada 1.000 esferes et donen +20 cada dia, i gairebé tota la botiga només reforça les millores 1-9, que funcionen quan et surt el personatge.', { n: n10, t: goal10 })) + '</li>')
     + (!M.shop ? li(T('Enganxa el $os per veure-hi els nivells'))
-    : buyList(shopBuys, '$os', SDESC, 'shop') || li(T('Ja tens al màxim les que et serveixen. Les altres reforcen millores que cap personatge teu no té.')));
-  if (done10 && shopBuys.length && M.sp >= shopBuys[0].cost) ready.push(['shopBox', T("Botiga d'esferes"), `${T('Millora {n}', { n: shopBuys[0].n })} · LVL ${shopBuys[0].l}`, shopBuys[0].cost]);
+    : buyList(shopBuys, '$os', SDESC, 'shop') || li(T('Ja tens al màxim les que et serveixen. Les altres reforcen millores que cap personatge teu no té.')) + (stage3 ? li(STAGE3) : ''));
+  if (shopOk && shopBuys.length && M.sp >= shopBuys[0].cost) ready.push(['shopBox', T("Botiga d'esferes"), `${T('Millora {n}', { n: shopBuys[0].n })} · LVL ${shopBuys[0].l}`, shopBuys[0].cost]);
   millAlert(ready);
   if (window.pendDraw) pendDraw();
 }
