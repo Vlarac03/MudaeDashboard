@@ -120,7 +120,7 @@ assert.deepEqual(readMudae('Hola, això no és de Mudae', 5000), {});
 assert.deepEqual(readMudae('Kakera rewards\nBonus Bronze I + Silver I + Gold I\n$bronze', 5000), {});  // el $kakerareward no són els teus nivells
 // torre: 12 pisos per torre; el $kt diu el total i d'aquí surt la torre on ets
 const TOWER = [11, 8, 7, 6, 5, 1, 4, 2, 9, 10, 3, 12];
-const [towerNext, towerFromKt] = new Function('TOWER', fn('towerNext') + fn('towerFromKt').replace(/\n$/, '') + '\nreturn [towerNext, towerFromKt];')(TOWER);
+const [towerNext, towerFromKt] = new Function('TOWER', js.match(/const X10_FROM = [^\n]*/)[0] + '\n' + fn('towerNext') + fn('towerFromKt').replace(/\n$/, '') + '\nreturn [towerNext, towerFromKt];')(TOWER);
 assert.deepEqual(towerNext({ f: [11, 8], tv: 5000 }), { tw: 0, built: 2, ok: true, cost: 15000, rec: 7 });
 assert.deepEqual(towerNext({ t: 1, f: [], tv: 5000 }), { tw: 1, built: 12, ok: true, cost: 65000, rec: 11 });  // torre 2: torna a començar per l'11
 assert.deepEqual(towerFromKt({ f: [11, 8] }, 14), { t: 1, f: [] });  // 14 pisos: torre 2, els marcats eren de la 1
@@ -131,7 +131,7 @@ assert.deepEqual(towerNext({ t: 1, f: [2, 7, 8, 10, 11], nf: 18, tv: 5000 }), { 
 assert.deepEqual(towerFromKt({ t: 1, f: [2, 7, 8, 10, 11] }, 15), { t: 1, f: [] });  // més marques que pisos: no són bones
 assert.deepEqual(towerFromKt({ t: 1, f: [2, 7] }, 17), { t: 1, f: [2, 7] });  // en falten: les deixa i en marques més
 // el preu base surt del $kt si has marcat els pisos: 7 pisos i el següent costa 40.000 → 5.000
-const towerGuess = new Function('TOWER', fn('towerNext') + fn('towerGuess') + 'return towerGuess;')(TOWER);
+const towerGuess = new Function('TOWER', js.match(/const X10_FROM = [^\n]*/)[0] + '\n' + fn('towerNext') + fn('towerGuess') + 'return towerGuess;')(TOWER);
 assert.equal(towerGuess({ f: [1, 2, 4, 7, 8, 10, 11], ktCost: 40000 }), 5000);
 assert.equal(towerGuess({ f: [], ktCost: 40000 }), null);  // sense pisos marcats no ho sabem
 assert.equal(towerGuess({ f: [8], ktCost: 300000 }), null);  // fora de 5.000-50.000: els pisos marcats no quadren
@@ -159,9 +159,19 @@ assert.deepEqual(pdSumrare('ggezw\n\nParadox:sunny: (1/20)\n\n4:sunny: (11/165)\
 // una altra raresa amb nom (wiki: la fila 6 són les ultraentitats i les paradoxes), amb l'emoji darrere
 assert.deepEqual(pdSumrare('Ultra Beast:ub: (2/11)\nParadox (1/20)\n5 (3/90)\n300 / 1.025').rare, { U: [2, 11], P: [1, 20], 5: [3, 90] });
 assert.deepEqual(pdSumrare('UB (2/11)\nMítico (4/22)\n5 (3/90)\n300 / 1.025').rare, { U: [2, 11], 'Mítico': [4, 22], 5: [3, 90] });  // una altra amb nom: tal qual
-// torre sense marques, de la 76 en amunt: el preu va x10 (wiki «Kakera Tower/Prices»): pis 951 → 952 × 5.000 × 10
+// torre sense marques, de la 77 en amunt: el preu va x10 (wiki «Kakera Tower/Prices»): pis 951 → 952 × 5.000 × 10
 assert.equal(readMudae('El siguiente nivel cuesta 47.600.000\nTienes 5\nArma un piso usando $build <n>', 5000).nf, 951);
 assert.equal(readMudae('El siguiente nivel cuesta 4.500.000\nTienes 5\nArma un piso usando $build <n>', 5000).nf, 899);  // torre 75: encara sense x10
+// la taula de la wiki (Victor, 21/11/2026): el pis N costa 5.000 × N fins al 912 (torre 76 sencera); el 913, el primer de la torre 77, 45.650.000
+const nfOf = c => readMudae(`El siguiente nivel cuesta ${c}\nTienes 5\nArma un piso usando $build <n>`, 5000).nf;
+assert.equal(nfOf('4.560.000'), 911);   // pis 912: l'últim sense x10
+assert.equal(nfOf('45.650.000'), 912);  // pis 913
+assert.equal(nfOf('60.000.000'), 1199); // pis 1.200: l'últim
+assert.equal(nfOf('4.505.000'), 900);   // pis 901: primer de la torre 76, sense x10
+const cost = built => towerNext({ nf: built, f: [], tv: 5000 }).cost;
+assert.equal(cost(911), 4560000); assert.equal(cost(912), 45650000); assert.equal(cost(1199), 60000000);
+let cum = 0; for (let b = 0; b < 1200; b++) { cum += cost(b); if (b === 11) assert.equal(cum, 390000); if (b === 899) assert.equal(cum, 2027250000); if (b === 911) assert.equal(cum, 2081640000); }
+assert.equal(cum, 17295240000);  // acumulat fins al pis 1.200, com diu la taula
 assert.equal(pdSumrare('vlarac\n Krabby x2\n100 / 1.025 - Page 1 / 10'), null);  // una pàgina del $pd no és el sumrare
 assert.equal(pdSumrare('Castle 5/8'), null);
 console.log('millores: totes les proves passen');

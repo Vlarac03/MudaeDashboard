@@ -1641,6 +1641,8 @@ const BADGES = __BADGES__, PLAN = __PLAN__, TOWER = __TOWER__, PORD = __PORD__, 
 const PCOST = [200, 400, 600, 800, 1000, 2000];
 const perkMax = n => n <= 5 ? 6 : 1, perkCost = (n, l) => n <= 5 ? PCOST[l] : 1000;
 const shopMax = () => 10, shopCost = (n, l) => 4000 * (l + 1);
+// Taula de preus de la wiki («Kakera Tower/Prices»): el pis N costa preu base × N fins al 912 (la torre 76 sencera); del 913 (torre 77) al 1.200 (torre 100, la darrera), x10
+const X10_FROM = 76;  // torres acabades a partir de les quals el preu va x10
 const STALE_DAYS = 7;  // shortcut: llindar triat per Claude; canviar-lo si Victor en vol un altre
 const KEYS_OFTEN = 10;  // shortcut: llindar triat per Claude (una clau cada cop que et surt un personatge teu); canviar-lo si Victor en vol un altre
 const num = t => Number(String(t).replace(/[^\d]/g, ''));
@@ -1673,7 +1675,7 @@ function readMudae(text, tv) {
     const step = text.match(/\+\s*(\d[\d.,]*)[^)\n]*\$towervalue/i), tw = text.match(/\(\s*\+\s*(\d+)\s*(?:torres?|towers?|tours?|torri|türme?)\b/i);
     const done = [...new Set([...text.matchAll(/^[ \t]*[^\s\[][^\[\n]*\[(\d{1,2})\]/gm)].map(m => +m[1]).filter(n => n >= 1 && n <= 12))];
     if (step) out.tv = num(step[1]);
-    // pel preu: el pis que toca és preu / preu base. De la torre 76 a la 100 (pisos 901-1.200) costa x10 (wiki)
+    // pel preu: el pis que toca és preu / preu base. De la torre 77 a la 100 (pisos 913-1.200) costa x10 (wiki): surt més de 1.200
     const base = out.tv || tv, raw = cost && base ? Math.round(out.ktCost / base) : 0;
     const byPrice = raw ? Math.max(0, (raw > 1200 ? Math.round(raw / 10) : raw) - 1) : null;
     if (done.length) {
@@ -1718,7 +1720,7 @@ function bonusFacts(B) {
 // El preu i el pis recomanat surten d'aquí: amb marques que no quadren, no recomana cap pis (podria ser un que ja tens).
 function towerNext(M) {
   const f = M.f || [], built = M.nf != null ? M.nf : (M.t || 0) * 12 + f.length, tw = Math.floor(built / 12), ok = f.length === built % 12;
-  return { tw, built, ok, cost: M.tv ? M.tv * (built + 1) * (tw >= 75 ? 10 : 1) : null, rec: ok ? TOWER.find(n => !f.includes(n)) : null };  // de la torre 76 en amunt, x10
+  return { tw, built, ok, cost: M.tv ? M.tv * (built + 1) * (tw >= X10_FROM ? 10 : 1) : null, rec: ok ? TOWER.find(n => !f.includes(n)) : null };
 }
 // El $kt diu quants pisos tens en total: d'aquí surt la torre on ets. Si canvies de torre, els pisos marcats eren de l'anterior;
 // si en tens més de marcats que pisos té la torre, no són bons
@@ -1756,7 +1758,7 @@ function nextBuys(levels, order, max, cost, count = 3) {
 }
 // El preu base de la torre ($towervalue) és del servidor: l'escrius tu o surt del $kt si has marcat els pisos que tens (preu = base × (pisos + 1))
 function towerGuess(M) {
-  const { tw, built } = towerNext(M), x = (built + 1) * (tw >= 75 ? 10 : 1), v = M.ktCost && built ? Math.round(M.ktCost / x) : 0;
+  const { tw, built } = towerNext(M), x = (built + 1) * (tw >= X10_FROM ? 10 : 1), v = M.ktCost && built ? Math.round(M.ktCost / x) : 0;
   return v >= 5000 && v <= 50000 && v * x === M.ktCost ? v : null;  // exacte: si no quadra, el $kt és d'abans de l'últim pis
 }
 // Llocs de la wishlist: 7 de base (wiki de Mudae) més els del $bonus; sense $bonus, no ho sabem
