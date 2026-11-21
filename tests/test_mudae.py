@@ -399,6 +399,45 @@ class Excel(Base):
             mudae.XLSX, mudae.DASH, mudae.HIST = old
 
 
+class Genere(Base):
+    """$imaa+osh= / $imaa+osw= / $imaa+oswh: el gènere de cada personatge (mostres reals de Victor, 21/11/2026)."""
+
+    def setUp(self):
+        super().setUp()
+        self.write("series/Harry Potter.txt", "Harry Potter 💞 => jo\nRon Weasley 💞 => jo\nDobby\nHermione Granger 💞 => jo\nLuna Lovegood\nNagini 💞 => pep\nThestral\nThe Sorting Hat 💞 => jo\n")
+        self.write("series/Howl's Moving Castle.txt", "Howl\nSophie Hatter\nCalcifer 💞 => jo\n")
+
+    def test_diverses_series(self):
+        men = ("-----\nHarry Potter + Howl's Moving Castle 4/6\n(bundle)\n\n:western_anim: \n\n"
+               "Dobby - Harry Potter\nHarry Potter 💞 => jo - Harry Potter\nRon Weasley 💞 => jo - Harry Potter\nCalcifer 💞 => jo - Howl's Moving Castle\nHowl - Howl's Moving Castle\n"
+               "\nPers. sin serie principal en este paquete:\n\nGellert Grindelwald - Fantastic Beasts\n")
+        mudae.save_paste("genere-h", "", "1. " + men)
+        mudae.save_paste("genere-w", "", "2. -----\nHarry Potter + Howl's Moving Castle 4/5\n(bundle)\n\nHermione Granger 💞 => jo - Harry Potter\nLuna Lovegood - Harry Potter\nNagini 💞 => pep - Harry Potter\nSophie Hatter - Howl's Moving Castle\n")
+        mudae.save_paste("genere-x", "", "-----\nHarry Potter + Howl's Moving Castle 2/2\n(bundle)\n\nThestral - Harry Potter\nThe Sorting Hat 💞 => jo - Harry Potter\n")
+        g = mudae.read_gender()
+        self.assertEqual(g["Harry Potter"]["Dobby"], "h")
+        self.assertEqual(g["Harry Potter"]["Luna Lovegood"], "w")
+        self.assertEqual(g["Harry Potter"]["Thestral"], "x")
+        self.assertEqual(g["Howl's Moving Castle"]["Sophie Hatter"], "w")
+        self.assertNotIn("Fantastic Beasts", g)  # una sèrie que no col·lecciones no es desa
+        st = mudae.gender_stats(mudae.read_series())
+        self.assertEqual(st["Harry Potter"], {"h": [3, 2, 1], "w": [3, 1, 1], "x": [2, 1, 1], "u": 0})  # [total, teus, lliures]
+        self.assertEqual(st["Howl's Moving Castle"], {"h": [2, 1, 1], "w": [1, 0, 1], "x": [0, 0, 0], "u": 0})
+
+    def test_una_serie(self):  # $imah=so Harry Potter: com el $imaso, amb títol i àlies
+        mudae.save_paste("genere-w", "Harry Potter", "Harry Potter 3/62\n\nHP\nHarry Potter and the Sorcerer's Stone\n4 más - Escriba $ima? para mostrar todos los alias.\n:western_anim: \n\nHermione Granger 💞 => jo\nNagini 💞 => pep\nLuna Lovegood\n")
+        self.assertEqual(mudae.read_gender()["Harry Potter"], {"Hermione Granger": "w", "Nagini": "w", "Luna Lovegood": "w"})  # sense els àlies
+
+    def test_sense_res_no_es_desa(self):
+        with self.assertRaises(ValueError):
+            mudae.save_paste("genere-h", "", "Aixo no es de Mudae\n")
+        self.assertFalse((self.tmp / "genere.json").exists())
+
+    def test_sense_genere(self):
+        st = mudae.gender_stats(mudae.read_series())
+        self.assertEqual(st["Harry Potter"]["u"], 8)
+
+
 class Ordres(unittest.TestCase):
     def test_botons_de_copiar(self):
         self.assertIn('data-copy="$oh"', mudae.cmd_html("$oh (×4)"))

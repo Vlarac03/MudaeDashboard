@@ -838,6 +838,109 @@ if (location.protocol.startsWith('http')) { ping(); setInterval(ping, 20000); do
 """
 
 
+JS_REC = r"""
+// «Què tirar»: amb el gènere de cada personatge ($imaa+osh= …) diu si tirar $h, $w o $m, per completar sèries o per fer claus.
+// GEN: sèrie → { h, w, x: [total, teus, lliures], u: sense gènere }. x (tots dos) surt tant a $h com a $w.
+const GEN = __GEN__, GENCHAR = __GENCHAR__;  // GENCHAR: sèrie → { personatge: h|w|x }
+const REC_CLOSE = { complete: 1.5, keys: 1.15 };  // si un gènere no guanya per tant, el mixt ($m) cobreix tots dos
+function recSum(scope) {
+  const names = scope === '*' ? Object.keys(GEN) : GEN[scope] ? [scope] : [];
+  const t = { h: [0, 0, 0], w: [0, 0, 0], x: [0, 0, 0], u: 0, known: 0, all: names.length };
+  for (const s of names) {
+    const g = GEN[s]; t.u += g.u;
+    for (const k of 'hwx') for (let i = 0; i < 3; i++) t[k][i] += g[k][i];
+    if (g.h[0] + g.w[0] + g.x[0]) t.known++;
+  }
+  return t;
+}
+function recommend(goal, t) {
+  const { h, w, x } = t, c = REC_CLOSE[goal];
+  if (!t.known) return { none: true };
+  if (goal === 'complete') {
+    const a = h[2], b = w[2];
+    if (!a && !b && !x[2]) return { done: true, a, b, x: x[2] };
+    return { cmd: !a && !b ? '$m' : a >= c * b ? '$h' : b >= c * a ? '$w' : '$m', a, b, x: x[2] };
+  }
+  const rate = g => g[0] + x[0] ? (g[1] + x[1]) / (g[0] + x[0]) : 0, a = rate(h), b = rate(w);
+  if (!h[1] && !w[1] && !x[1]) return { nomine: true };
+  return { cmd: a > 0 && a >= c * b ? '$h' : b > 0 && b >= c * a ? '$w' : '$m', a: Math.round(a * 100), b: Math.round(b * 100), x: x[1] };
+}
+// «Les que tinc amb més claus»: els X primers del $mmy= (guardat a Millores) i de quin gènere són
+function mmyKeys() { try { return JSON.parse(localStorage.getItem('mudae-millores') || '{}').keys || null; } catch (e) { return null; } }
+function recTop(scope, n) {
+  const keys = mmyKeys(); if (!keys) return { nokeys: true };
+  const code = {}, names = scope === '*' ? Object.keys(GENCHAR) : GENCHAR[scope] ? [scope] : [];
+  for (const s of names) for (const [nm, c] of Object.entries(GENCHAR[s])) if (!(nm in code)) code[nm] = c;
+  if (!Object.keys(code).length) return { none: true };
+  const top = [...keys].sort((a, b) => b[1] - a[1]).filter(([nm]) => scope === '*' || nm in code).slice(0, n);
+  const cnt = { h: 0, w: 0, x: 0, u: 0 };
+  for (const [nm] of top) cnt[code[nm] || 'u']++;
+  if (!top.length) return { nomine: true };
+  if (!cnt.h && !cnt.w && !cnt.x) return { none: true };
+  const c = REC_CLOSE.complete, a = cnt.h, b = cnt.w;
+  return { cmd: !a && !b ? '$m' : a >= c * b ? '$h' : b >= c * a ? '$w' : '$m', n: top.length, a, b, x: cnt.x, u: cnt.u };
+}
+const ROLL_NAME = () => ({ '$h': T('Tira homes'), '$w': T('Tira dones'), '$m': T('Tira mixt') });
+// una línia per sèrie (a l'àlbum de Col·leccions): quants hi ha de cada gènere i què tirar
+function recLine(serie) {
+  const t = recSum(serie);
+  if (!t.known) return '<span class="tag">' + esc(T('Sense gènere')) + '</span> ' + esc(T('A «Posar al dia» tria Homes, Dones i Tots dos de les sèries.'));
+  const cnt = (k, g) => esc(T(k)) + ' <b>' + g[1] + '/' + g[0] + '</b>';
+  const cc = recommend('complete', t), ck = recommend('keys', t);
+  const cmd = r => r.cmd ? '<button class="cmd" data-copy="' + r.cmd + '">' + r.cmd + '</button>' : '<span class="muted">—</span>';
+  return cnt('Homes', t.h) + ' · ' + cnt('Dones', t.w) + ' · ' + cnt('Tots dos', t.x) + (t.u ? ' · ' + esc(T('{n} sense gènere', { n: t.u })) : '')
+    + ' &nbsp;→&nbsp; ' + esc(T('Completar')) + ' ' + cmd(cc) + ' · ' + esc(T('Claus')) + ' ' + cmd(ck);
+}
+(function () {
+  const goalSel = document.getElementById('recGoal'), scopeSel = document.getElementById('recScope'), out = document.getElementById('recOut'), topIn = document.getElementById('recTop');
+  if (!goalSel) return;
+  const names = Object.keys(GEN).sort((a, b) => a.localeCompare(b));
+  scopeSel.innerHTML = '<option value="*">' + esc(T('Totes les sèries')) + '</option>' + names.map(n => '<option>' + esc(n) + '</option>').join('');
+  try {
+    const g = localStorage.getItem('mudae-recGoal'), s = localStorage.getItem('mudae-recScope');
+    if (g in REC_CLOSE || g === 'top') goalSel.value = g;
+    const n = parseInt(localStorage.getItem('mudae-recTop'), 10); if (n > 0) topIn.value = n;
+    if (s === '*' || names.includes(s)) scopeSel.value = s;
+  } catch (e) {}
+  function draw() {
+    const goal = goalSel.value, top = goal === 'top', t = recSum(scopeSel.value);
+    const r = top ? recTop(scopeSel.value, Math.max(1, parseInt(topIn.value, 10) || 10)) : recommend(goal, t);
+    topIn.hidden = !top;
+    try { localStorage.setItem('mudae-recGoal', goal); localStorage.setItem('mudae-recScope', scopeSel.value); localStorage.setItem('mudae-recTop', topIn.value); } catch (e) {}
+    const go = '<button type="button" class="go" data-goto="eines">' + esc(T('Posar al dia')) + ' →</button>';
+    if (r.nokeys) {
+      out.innerHTML = '<p class="muted" style="margin:0">' + esc(T('Enganxa el $mmy= per saber quins et surten més.')) + '</p> <button type="button" class="go" data-goto="mill">' + esc(T('Millores')) + ' →</button>';
+      return;
+    }
+    if (r.none) {
+      out.innerHTML = '<p class="muted" style="margin:0">' + esc(T("Encara no sé el gènere dels personatges. A «Posar al dia» tria Homes, Dones i Tots dos de les sèries, envia cada ordre i enganxa'n la resposta (un sol cop).")) + '</p> ' + go;
+      return;
+    }
+    let html;
+    if (r.done) html = '<span class="tag good">' + esc(T('Completat')) + '</span> ' + esc(T('No et falta cap personatge lliure.'));
+    else if (r.nomine) html = '<span class="tag">' + esc(T('Sense claus')) + '</span> ' + esc(T('Encara no tens cap personatge en aquestes sèries.'));
+    else {
+      const detail = top ? T('De les {n} amb més claus: {h} homes, {w} dones i {x} de tots dos', { n: r.n, h: r.a, w: r.b, x: r.x }) + (r.u ? ' · ' + T('{n} sense gènere', { n: r.u }) : '')
+        : goal === 'complete' ? T('Et falten {h} homes, {w} dones i {x} de tots dos', { h: r.a, w: r.b, x: r.x })
+        : T('Tens el {h} % dels homes i el {w} % de les dones', { h: r.a, w: r.b });
+      html = '<div class="give-row" style="margin:0"><button class="cmd" data-copy="' + r.cmd + '">' + r.cmd + '</button> <b>' + esc(ROLL_NAME()[r.cmd]) + '</b> <span class="muted">' + esc(detail) + '</span></div>';
+    }
+    html += '<p class="muted" style="margin:8px 0 0;font-size:13px">' + esc(goal === 'complete'
+      ? T('Tira el gènere amb més personatges lliures. Si hi ha poca diferència, el mixt ($m) cobreix tots dos.')
+      : top ? T('Les claus surten quan et torna a sortir un personatge que ja tens: tira el gènere on hi ha més dels que tens amb més claus.')
+      : T('Una clau surt quan et torna a sortir un personatge que ja tens, sense reclamar-lo: tira el gènere on en tens més, en proporció.')) + '</p>';
+    if (top) { /* el gènere dels X ja és al detall */ }
+    else if (t.all > t.known) html += '<p class="muted" style="margin:4px 0 0;font-size:13px">' + esc(T('{n} sèries sense gènere.', { n: t.all - t.known })) + ' ' + go + '</p>';
+    else if (t.u) html += '<p class="muted" style="margin:4px 0 0;font-size:13px">' + esc(T('{n} personatges sense gènere: torna a enganxar-los a «Posar al dia».', { n: t.u })) + ' ' + go + '</p>';
+    out.innerHTML = html;
+  }
+  goalSel.addEventListener('change', draw); scopeSel.addEventListener('change', draw); topIn.addEventListener('input', draw);
+  document.addEventListener('mudae-mill', draw);  // enganxes el $mmy= a la casella d'Avui: es posa al dia sol
+  draw();
+})();
+"""
+
+
 JS_COLL = """
 const COLL = __DATA__;
 const album = document.querySelector('#coll .album'), chips = document.getElementById('chips'), hide = document.getElementById('hideMine'), title = document.getElementById('albumTitle');
@@ -852,6 +955,7 @@ function draw() {
   if (!cur) return;
   const list = COLL[cur], mine = list.filter(c => c.st === 'Meu').length;
   title.textContent = `${cur} · ` + T('{a} de {b}', { a: mine, b: list.length });
+  document.getElementById('albumGen').innerHTML = recLine(cur);
   document.querySelectorAll('.row[data-serie]').forEach(r => {
     const on = r.dataset.serie === cur;
     r.classList.toggle('on', on && !album.hidden); r.setAttribute('aria-expanded', String(on && !album.hidden));
@@ -1499,6 +1603,7 @@ render();
 
 JS_UPD = r"""
 // «Posar al dia»: enganxes el que diu Mudae i el servidor ho desa a dades/ i refà l'Excel i el tauler
+const GENPRE = { 'genere-h': '$imaa+osh= ', 'genere-w': '$imaa+osw= ', 'genere-x': '$imaa+oswh ' };
 const META = __META__, SPECIALS = __SPECIALS__, SIZES = __SIZES__, HAREM_N = __HAREM_N__, SOURCES = __SOURCES__;  // SOURCES: sèrie d'on surt una especial → [personatges, especial]
 const kindSel = document.getElementById('updKind'), serieBox = document.getElementById('updSerieBox'), serieSel = document.getElementById('updSerie');
 const newIn = document.getElementById('updNew'), txt = document.getElementById('updText'), updBtn = document.getElementById('updBtn');
@@ -1548,18 +1653,21 @@ function syncUpd() {
   newIn.hidden = serieSel.value !== '__new__';
   const esp = kindSel.value === 'serie' && SPECIALS.includes(serieName());
   document.getElementById('updEsp').hidden = !esp;
-  const gs = groups(), cmds = gs.map(g => '$imaa+os ' + g.join(' $ ')), today = new Date().toLocaleDateString('sv');  // sv: AAAA-MM-DD, com el servidor
-  const cmd = kindSel.value === 'harem' ? '$mma+s' : kindSel.value === 'wishlist' ? '$wl' : kindSel.value === 'totes' ? (cmds.length === 1 ? cmds[0] : '$imaa+os ')
+  const all = kindSel.value === 'totes', gen = kindSel.value.startsWith('genere-'), many = all || gen;
+  const pre = gen ? GENPRE[kindSel.value] : '$imaa+os ';  // homes: h=, dones: w=, tots dos: wh (només els exactes, sense solapar-se)
+  const gs = groups(), cmds = gs.map(g => pre + g.join(' $ ')), today = new Date().toLocaleDateString('sv');  // sv: AAAA-MM-DD, com el servidor
+  document.getElementById('updGen').hidden = !gen;
+  const cmd = kindSel.value === 'harem' ? '$mma+s' : kindSel.value === 'wishlist' ? '$wl' : many ? (cmds.length === 1 ? cmds[0] : pre)
     : esp ? '$imaso ' : '$imaso ' + (serieName() || '<' + T('sèrie') + '>');
-  updCmd.textContent = kindSel.value === 'totes' ? '$imaa+os' : cmd; updCmd.dataset.copy = cmd;  // la sencera surt a sota: aquí, sencera, no hi cap
-  const all = kindSel.value === 'totes', allCopy = document.getElementById('updAllCopy');  // l'ordre sencera ben a la vista, amb les sèries
-  document.getElementById('updAll').hidden = !all;
+  updCmd.textContent = many ? pre.trim() : cmd; updCmd.dataset.copy = cmd;  // la sencera surt a sota: aquí, sencera, no hi cap
+  const allCopy = document.getElementById('updAllCopy');  // l'ordre sencera ben a la vista, amb les sèries
+  document.getElementById('updAll').hidden = !many;
   const code = c => '<code>' + esc(c) + '</code>';
   document.getElementById('updAllCmd').innerHTML = !cmds.length ? code(T('Encara no tens cap sèrie: escriu-les a «Sèries noves».'))
     : cmds.length === 1 ? code(cmds[0])
     : '<span class="muted" style="font-size:13px">' + esc(T("Mudae contesta 1.000 personatges com a molt: envia els grups d'un en un i enganxa cada resposta abans d'enviar el següent. Les sèries noves van primer.")) + '</span>'
       + cmds.map((c, i) => '<div class="give-row"><b>' + esc(T('Grup {n} de {t}', { n: i + 1, t: cmds.length })) + '</b>'
-        + (gs[i].every(s => (META.series || {})[(SOURCES[s] || [])[1] || s] === today) ? '<span class="tag good">' + esc(T('Posat al dia avui')) + '</span>' : '') + '<button class="copybtn" data-copy="' + esc(c) + '">' + esc(T('Copiar ordre')) + '</button></div>' + code(c)).join('');
+        + (!gen && gs[i].every(s => (META.series || {})[(SOURCES[s] || [])[1] || s] === today) ? '<span class="tag good">' + esc(T('Posat al dia avui')) + '</span>' : '') + '<button class="copybtn" data-copy="' + esc(c) + '">' + esc(T('Copiar ordre')) + '</button></div>' + code(c)).join('');
   allCopy.dataset.copy = cmds[0] || ''; allCopy.hidden = cmds.length !== 1;
   const ad = '$ad ' + allList().join(' $ '), adCopy = document.getElementById('updAdCopy');  // desbloqueja totes les teves sèries a les tirades
   document.getElementById('updAd').hidden = !all || !allList().length;
@@ -1594,6 +1702,7 @@ function autoSave() {
   updBtn.click(); return true;
 }
 txt.addEventListener('paste', () => setTimeout(() => {
+  if (kindSel.value.startsWith('genere-')) { syncUpd(); if (!updBtn.disabled) updBtn.click(); return; }  // el gènere no es veu al text: el tries tu
   if (autoKind(false) && !autoSave()) updMsg.innerHTML += ' ' + esc(T('Comprova la sèrie i clica «Desar i actualitzar».'));
 }));
 // el que vas triar l'última vegada (què enganxes i quina sèrie), per no haver-ho de canviar cada cop
@@ -1624,6 +1733,7 @@ updBtn.onclick = async () => {
     const noves = kindSel.value === 'totes' ? newSeries() : kindSel.value === 'serie' && serieSel.value === '__new__' ? [serieName()] : [];
     const j = await postJSON('/dades', { kind: kindSel.value, serie: serieName(), text: txt.value, noves: kindSel.value === 'totes' ? noves : [] });
     if (j.ok) {
+      try { const nx = { 'genere-h': 'genere-w', 'genere-w': 'genere-x' }[kindSel.value]; if (nx) localStorage.setItem('mudae-updKind', nx); } catch (e) {}
       try { if (j.warn) sessionStorage.setItem('mudae-avis', j.warn); if (noves.length) sessionStorage.setItem('mudae-abans', JSON.stringify(ALL)); } catch (e) {}
       location.reload();
     }
@@ -1804,7 +1914,7 @@ const hasBonus = () => !!(M.bonus && M.bonus.length);  // un de buit (d'abans de
 const wlSlots = () => { const v = bonusFacts(M.bonus).wl; return v == null ? null : 7 + v; };
 function millLoad() { try { return Object.assign({ b: {}, f: [], tv: null }, JSON.parse(localStorage.getItem('mudae-millores') || '{}')); } catch (e) { return { b: {}, f: [], tv: null }; } }
 let M = millLoad();
-const millSave = () => { try { localStorage.setItem('mudae-millores', JSON.stringify(M)); } catch (e) {} };
+const millSave = () => { try { localStorage.setItem('mudae-millores', JSON.stringify(M)); } catch (e) {} document.dispatchEvent(new Event('mudae-mill')); };
 const $id = id => document.getElementById(id);
 // «Fet»: ho has comprat a Mudae; el tauler apunta el nivell nou i descompta el que costa, sense tornar a enganxar el $k, $kt, $opp o $os.
 // Es pot desfer (només l'última vegada: la còpia d'abans és a la memòria).
@@ -2292,7 +2402,7 @@ millText.addEventListener('paste', () => setTimeout(() => pasteAll(millText.valu
 // «Pendent!»: el que depèn del teu servidor o de tu i encara no has enganxat, amb l'ordre que ho diu. No suposem res.
 const NEED = __NEED__;
 function pendDraw() {
-  const out = [], add = (cmd, why) => out.push(`<li><button class="cmd" data-copy="${esc(cmd)}">${esc(cmd.trim())}</button> <span class="muted">${esc(why)}</span></li>`);
+  const out = [], add = (cmd, why, label) => out.push(`<li><button class="cmd" data-copy="${esc(cmd)}">${esc(label || cmd.trim())}</button> <span class="muted">${esc(why)}</span></li>`);
   if (RS.m == null || !RS.next) add('$tu', T('quan tornen les tirades i el reclam, i el poder de kakera'));
   if (!RS.iv) add('$settings', T('cada quant hi ha reclam al servidor'));
   if (!hasBonus()) add('$bonus', T('cada quant pots fer el $rt i quants llocs tens a la wishlist'));
@@ -2300,7 +2410,7 @@ function pendDraw() {
   if (!M.opps) add('$opz', T('quins personatges tenen esferes (enganxa cada pàgina)'));
   if ((M.nf == null || !M.tv) && !M.ktCost) add('$kt', T('la torre: quants pisos tens i quant costa el següent'));
   else if (M.nf == null || !M.tv) out.push(`<li>${goTo('mill', T('Millores'))} <span class="muted">${esc(T('la torre: marca els pisos que tens (o escriu el preu base de la torre)'))}</span></li>`);
-  NEED.forEach(([cmd, why]) => add(cmd, why));
+  NEED.forEach(([cmd, why, label]) => add(cmd, why, label));
   document.getElementById('pendList').innerHTML = out.join('');
   document.getElementById('pend').hidden = !out.length;
 }
@@ -2450,6 +2560,7 @@ def write_dashboard(d, hist):
         alerts.append(alert(t("Harem"), "", e(t("{n} personatges teus no surten al harem: torna a enganxar el $mma+s a «Posar al dia»", n=len(d["missing"]))), "eines"))
 
     spec = specials()
+    gstats = gender_stats(rows)
     esp_tag = f' <span class="tag accent">{e(t("especial"))}</span>'
     bars = []
     for s in series:
@@ -2543,6 +2654,12 @@ def write_dashboard(d, hist):
     # botons per copiar les ordres que entén la casella d'Avui; $imaa+os, amb totes les teves sèries (com a «Posar al dia»)
     sources = {s: [n, sp] for sp, ss in special_sources().items() for s, n in ss.items()}  # les especials, per la sèrie d'on surten
     all_cmd = "$imaa+os " + " $ ".join([x["name"] for x in series if x["name"] not in spec] + list(sources))
+    mine_names = [x["name"] for x in series if x["name"] not in spec]
+    if mine_names and any(v["u"] for v in gstats.values()):  # «Pendent!»: el gènere dels personatges (un sol cop; no es veu al text, el tries a «Posar al dia»)
+        why = t("el gènere dels personatges, per saber si tirar $h, $w o $m: un sol cop, i a «Posar al dia» tria Homes, Dones o Tots dos abans d'enganxar")
+        for pre in ("$imaa+osh= ", "$imaa+osw= ", "$imaa+oswh "):
+            full = pre + " $ ".join(mine_names)
+            need.append([full if len(full) <= 1900 else pre, why, pre.strip() + " …"])  # massa llarga per a un missatge: només el principi
     mill_cmds = " ".join(cmd_html(c) for c in ("$k", "$kt", "$opz", "$opp <personatge>", "$os", "$mmy=", "$bonus", "$tu"))  # el que llegeix Millores
     paste_cmds = (" ".join(cmd_html(c) for c in ("$tu", "$settings", "$p", "$k", "$kt", "$opz", "$opp <personatge>", "$os", "$mmy=", "$bonus", "$mma+s", "$wl", "$imaso <sèrie>"))
                   + (f' <button class="cmd" id="todayAll" data-copy="{e(all_cmd)}" data-tip="{e(t("Totes les teves sèries"))}">$imaa+os</button>' if len(all_cmd) > 9 else "")
@@ -2620,6 +2737,13 @@ def write_dashboard(d, hist):
  <div class="today-head"><h2>{T_("Què toca ara")}</h2></div>
  {checklist}
 </section>
+<section class="panel" id="rollRec">
+ <div class="panel-head"><h2>{T_("Què tirar")}</h2>
+  <span class="give-row" style="margin:0"><select id="recGoal" aria-label="{T_("Què vols aconseguir")}"><option value="complete">{T_("Completar sèries")}</option><option value="keys">{T_("Aconseguir claus")}</option><option value="top">{T_("Les que tinc amb més claus")}</option></select>
+   <input type="number" id="recTop" min="1" max="999" value="10" aria-label="{T_("Quantes")}" style="width:5.5em" hidden>
+   <select id="recScope" aria-label="{T_("Sèrie:")}"></select></span></div>
+ <div id="recOut"></div>
+</section>
 <div class="g2">
  <details class="panel fold ocbox" id="ocFold" data-fold="oc"><summary><h2>{T_("Ajudant del $oc")}</h2><span class="muted" style="font-size:13px">{T_("Troba la vermella: fes servir l'ajudant")}</span></summary>
   <div class="fold-body"><a href="{oc}" style="font-size:13px">{T_("Obrir a part")}</a><iframe src="{oc}" title="{T_("Ajudant del $oc")}"></iframe></div></details>
@@ -2639,6 +2763,7 @@ def write_dashboard(d, hist):
   <div class="album-head"><h3 id="albumTitle"></h3>
    <span class="give-row" style="margin:0"><label class="toggle"><input type="checkbox" id="hideMine"> {T_("Amaga els que ja tinc")}</label>
     <button type="button" class="tab" id="collDel">{T_("Deixar de fer-la")}</button></span></div>
+  <div class="muted" id="albumGen" style="font-size:13px;margin:6px 0"></div>
   <div class="legend">
    <span class="ch wish"><span class="star">★</span> {T_("A la wishlist")}</span><span class="ch alta">{T_("Lliure · prioritat alta")}</span>
    <span class="ch other">{T_("D'algú altre")}<small>{T_("qui el té")}</small></span><span class="ch free">{T_("Lliure")}</span><span class="ch mine">{T_("Teu")}</span></div>
@@ -2750,11 +2875,12 @@ def write_dashboard(d, hist):
 <section class="panel" id="upd">
  <div class="panel-head"><h2>{T_("Posar al dia")}</h2><span id="updAge" class="muted" style="font-size:13px"></span></div>
  <div class="give-row">{T_("Què enganxes:")}
-  <select id="updKind" aria-label="{T_("Què enganxes:")}"><option value="harem">{T_("El teu harem ($mma+s)")}</option><option value="wishlist">{T_("La wishlist ($wl)")}</option><option value="totes">{T_("Totes les teves sèries")}</option><option value="serie">{T_("Una sèrie ($imaso)")}</option></select>
+  <select id="updKind" aria-label="{T_("Què enganxes:")}"><option value="harem">{T_("El teu harem ($mma+s)")}</option><option value="wishlist">{T_("La wishlist ($wl)")}</option><option value="totes">{T_("Totes les teves sèries")}</option><option value="serie">{T_("Una sèrie ($imaso)")}</option><option value="genere-h">{T_("Homes de les sèries ($imaa+osh=)")}</option><option value="genere-w">{T_("Dones de les sèries ($imaa+osw=)")}</option><option value="genere-x">{T_("Tots dos gèneres ($imaa+oswh)")}</option></select>
   <span id="updSerieBox" hidden>{T_("Sèrie:")} <select id="updSerie" aria-label="{T_("Sèrie:")}">{serie_opts}<option value="__new__">{T_("Sèrie nova…")}</option></select>
   <input type="text" id="updNew" spellcheck="false" autocomplete="off" aria-label="{T_("Nom de la sèrie, com surt a Mudae")}" placeholder="{T_("Nom de la sèrie, com surt a Mudae")}" hidden></span>
   <span>{T_("Ordre:")} <button class="cmd" id="updCmd" data-copy="$mma+s">$mma+s</button></span></div>
  <p class="muted" id="updEsp" style="margin:0;font-size:13px" hidden>{T_("Col·lecció especial: enganxa el $imaso de la sèrie d'on surten els personatges (totes les pàgines). Només se n'agafaran els d'aquesta col·lecció.")}</p>
+ <p class="muted" id="updGen" style="margin:0;font-size:13px" hidden>{T_("Gènere: envia l'ordre, enganxa la resposta i repeteix-ho amb les altres dues (homes, dones i tots dos). Només cal fer-ho un cop per sèrie: el gènere d'un personatge no canvia.")}</p>
  <div class="give" id="updAll" hidden><div class="give-row"><b>{T_("Ordre amb totes les teves sèries")}</b><button class="copybtn" id="updAllCopy" data-copy="">{T_("Copiar ordre")}</button></div><div id="updAllCmd"></div>
   <span class="muted" style="font-size:13px">{T_("1. Copia l'ordre: són les teves sèries separades amb $. 2. Envia-la a Mudae. 3. Enganxa a sota tot el que et contesti per privat (tots els missatges).")}</span>
   <label class="give-row">{T_("Sèries noves:")} <input type="text" id="updAllNew" spellcheck="false" autocomplete="off" style="flex:1;min-width:220px;width:auto" placeholder="{T_("Harry Potter $ Pingu $ ABBA")}"></label>
@@ -2901,6 +3027,7 @@ document.addEventListener('click', ev => {{ if (more.open && (!more.contains(ev.
 document.addEventListener('keydown', ev => {{ if (ev.key === 'Escape' && more.open) {{ more.open = false; more.querySelector('summary').focus(); }} }});
 
 </script><script>{JS_TODAY}</script>
+<script>{JS_REC.replace("__GEN__", js(gstats)).replace("__GENCHAR__", js({k: v for k, v in read_gender().items() if k in gstats}))}</script>
 <script>{JS_COLL.replace("__DATA__", js(coll))}</script>
 <script>{JS_BACKUP}</script>
 <script>{JS_UPD.replace("__META__", js(read_meta())).replace("__SPECIALS__", js(spec)).replace("__SIZES__", js({x["name"]: x["total"] for x in series})).replace("__HAREM_N__", str(len(d["harem"]))).replace("__SOURCES__", js(sources))}</script>
@@ -3112,9 +3239,79 @@ def update_all(text, new=()):
         warn.append(t("No sé de quina de les teves sèries són {names}: posa al dia aquella sèrie amb «Una sèrie ($imaso)».", names=", ".join(lost[:10])))
     if short:
         warn.append(t("No he tocat {series}: en falten. Copia tots els missatges de Mudae.", series=", ".join(short)))
+        warn.append(t("Si l'ordre tenia h, w o wh (gènere), tria Homes, Dones o Tots dos a «Posar al dia»."))
     if renamed:
         warn.append(t("Desades amb el nom de Mudae: {series}. Si a «Sèries noves» les havies escrit d'una altra manera, esborra-les d'allà.", series=", ".join(renamed)))
     return " ".join(warn)
+
+
+GENDER_CODES = {"h": "homes", "w": "dones", "x": "tots dos"}  # h=: només homes, w=: només dones, wh: «tots dos» (Mudae)
+
+
+def read_gender():
+    """El gènere de cada personatge, {sèrie: {nom: "h"|"w"|"x"}}. No canvia mai: s'enganxa un sol cop per sèrie."""
+    f = DADES / "genere.json"
+    try:
+        return json.loads(f.read_text(encoding="utf-8")) if f.exists() else {}
+    except ValueError:
+        return {}
+
+
+def save_gender(code, text, serie=""):
+    """$imaa+osh= / $imaa+osw= / $imaa+oswh d'una o moltes sèries: desa quins personatges són homes, dones o de tots dos.
+
+    Format de moltes sèries: «Kate Beckett 💞 => pep - Castle». D'una sola: com el $imaso (amb el títol i els àlies).
+    Només compten les sèries que ja tens; el que es desa se suma al que ja hi havia.
+    """
+    if code not in GENDER_CODES:
+        raise ValueError(t("No sé què és «{kind}».", kind=code))
+    files = {f.stem.translate(FROM_FILE): f for f in (DADES / "series").glob("*.txt")}
+    spec = set(specials())
+    normal = sorted((s for s in files if s not in spec), key=len, reverse=True)  # la més llarga primer
+    found = {}
+    clean = lambda raw: re.sub(r"^\d+\.\s+", "", raw.replace("⭐", "").strip())
+    for raw in text.splitlines():
+        line = clean(raw)
+        if not line or SKIP.search(line) or re.fullmatch(r"-{3,}", line):
+            continue
+        low = line.casefold()
+        s = next((s for s in normal if low.endswith(" - " + s.casefold())), None)
+        if s:
+            name = re.split(r"\s*(?:💞|=>)", line[:-len(s) - 3])[0].strip()
+            if name:
+                found.setdefault(s, set()).add(name)
+    if not found:  # una sola sèrie, sense « - Sèrie» a les línies: com el $imaso
+        serie = serie.strip()
+        if serie in normal:
+            body = parse_owners(drop_header(text, check=False))
+            known = {n.casefold(): n for n in parse_owners(files[serie].read_text(encoding="utf-8-sig"))}
+            names = {known[n.casefold()] for n in body if n.casefold() in known}  # els àlies del títol no són personatges
+            if names:
+                found[serie] = names
+    if not found:
+        raise ValueError(t("No he trobat cap personatge de les teves sèries. Tria Homes, Dones o Tots dos segons l'ordre que has enviat i copia tots els missatges."))
+    data = read_gender()
+    for s, names in found.items():
+        data.setdefault(s, {}).update(dict.fromkeys(names, code))
+    (DADES / "genere.json").write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+
+
+def gender_stats(rows):
+    """Per sèrie i gènere: [total, teus, lliures] de homes (h), dones (w) i tots dos (x), i quants no tenen gènere (u)."""
+    gender, spec, out = read_gender(), set(specials()), {}
+    for r in rows:
+        if r["serie"] in spec:
+            continue
+        d = out.setdefault(r["serie"], {"h": [0, 0, 0], "w": [0, 0, 0], "x": [0, 0, 0], "u": 0})
+        code = gender.get(r["serie"], {}).get(r["name"])
+        if code not in GENDER_CODES:
+            d["u"] += 1
+            continue
+        a = d[code]
+        a[0] += 1
+        a[1] += r["owner"] == ME
+        a[2] += r["owner"] == ""
+    return out
 
 
 def save_paste(kind, serie, text, new=()):
@@ -3124,6 +3321,8 @@ def save_paste(kind, serie, text, new=()):
         return
     elif kind == "totes":
         return update_all(text, new)
+    elif kind.startswith("genere-"):
+        return save_gender(kind[7:], text, serie)
     elif kind == "wishlist":
         path = DADES / "wishlist.txt"
     elif kind == "serie":
