@@ -2402,7 +2402,7 @@ millText.addEventListener('paste', () => setTimeout(() => pasteAll(millText.valu
 // «Pendent!»: el que depèn del teu servidor o de tu i encara no has enganxat, amb l'ordre que ho diu. No suposem res.
 const NEED = __NEED__;
 function pendDraw() {
-  const out = [], add = (cmd, why) => out.push(`<li><button class="cmd" data-copy="${esc(cmd)}">${esc(cmd.trim())}</button> <span class="muted">${esc(why)}</span></li>`);
+  const out = [], add = (cmd, why, label) => out.push(`<li><button class="cmd" data-copy="${esc(cmd)}">${esc(label || cmd.trim())}</button> <span class="muted">${esc(why)}</span></li>`);
   if (RS.m == null || !RS.next) add('$tu', T('quan tornen les tirades i el reclam, i el poder de kakera'));
   if (!RS.iv) add('$settings', T('cada quant hi ha reclam al servidor'));
   if (!hasBonus()) add('$bonus', T('cada quant pots fer el $rt i quants llocs tens a la wishlist'));
@@ -2410,7 +2410,7 @@ function pendDraw() {
   if (!M.opps) add('$opz', T('quins personatges tenen esferes (enganxa cada pàgina)'));
   if ((M.nf == null || !M.tv) && !M.ktCost) add('$kt', T('la torre: quants pisos tens i quant costa el següent'));
   else if (M.nf == null || !M.tv) out.push(`<li>${goTo('mill', T('Millores'))} <span class="muted">${esc(T('la torre: marca els pisos que tens (o escriu el preu base de la torre)'))}</span></li>`);
-  NEED.forEach(([cmd, why]) => add(cmd, why));
+  NEED.forEach(([cmd, why, label]) => add(cmd, why, label));
   document.getElementById('pendList').innerHTML = out.join('');
   document.getElementById('pend').hidden = !out.length;
 }
@@ -2654,6 +2654,12 @@ def write_dashboard(d, hist):
     # botons per copiar les ordres que entén la casella d'Avui; $imaa+os, amb totes les teves sèries (com a «Posar al dia»)
     sources = {s: [n, sp] for sp, ss in special_sources().items() for s, n in ss.items()}  # les especials, per la sèrie d'on surten
     all_cmd = "$imaa+os " + " $ ".join([x["name"] for x in series if x["name"] not in spec] + list(sources))
+    mine_names = [x["name"] for x in series if x["name"] not in spec]
+    if mine_names and any(v["u"] for v in gstats.values()):  # «Pendent!»: el gènere dels personatges (un sol cop; no es veu al text, el tries a «Posar al dia»)
+        why = t("el gènere dels personatges, per saber si tirar $h, $w o $m: un sol cop, i a «Posar al dia» tria Homes, Dones o Tots dos abans d'enganxar")
+        for pre in ("$imaa+osh= ", "$imaa+osw= ", "$imaa+oswh "):
+            full = pre + " $ ".join(mine_names)
+            need.append([full if len(full) <= 1900 else pre, why, pre.strip() + " …"])  # massa llarga per a un missatge: només el principi
     mill_cmds = " ".join(cmd_html(c) for c in ("$k", "$kt", "$opz", "$opp <personatge>", "$os", "$mmy=", "$bonus", "$tu"))  # el que llegeix Millores
     paste_cmds = (" ".join(cmd_html(c) for c in ("$tu", "$settings", "$p", "$k", "$kt", "$opz", "$opp <personatge>", "$os", "$mmy=", "$bonus", "$mma+s", "$wl", "$imaso <sèrie>"))
                   + (f' <button class="cmd" id="todayAll" data-copy="{e(all_cmd)}" data-tip="{e(t("Totes les teves sèries"))}">$imaa+os</button>' if len(all_cmd) > 9 else "")
