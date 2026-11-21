@@ -706,7 +706,7 @@ ES = {
     "Quantes": "Cuántas",
     "De les {n} amb més claus: {h} homes, {w} dones i {x} de tots dos": "De las {n} con más llaves: {h} hombres, {w} mujeres y {x} de ambos",
     "Les claus surten quan et torna a sortir un personatge que ja tens: tira el gènere on hi ha més dels que tens amb més claus.": "Las llaves salen cuando te vuelve a salir un personaje que ya tienes: tira el género donde hay más de los que tienes con más llaves.",
-    "el gènere dels personatges, per saber si tirar $h, $w o $m: un sol cop, i a «Posar al dia» tria Homes, Dones o Tots dos abans d'enganxar": "el género de los personajes, para saber si tirar $h, $w o $m: una sola vez, y en «Poner al día» elige Hombres, Mujeres o Ambos antes de pegar",
+    "el gènere dels personatges, per saber si tirar $h, $w o $m: un sol cop": "el género de los personajes, para saber si tirar $h, $w o $m: una sola vez",
 }
 
 EN = {
@@ -1411,7 +1411,7 @@ EN = {
     "Quantes": "How many",
     "De les {n} amb més claus: {h} homes, {w} dones i {x} de tots dos": "Of the {n} with most keys: {h} men, {w} women and {x} of both",
     "Les claus surten quan et torna a sortir un personatge que ja tens: tira el gènere on hi ha més dels que tens amb més claus.": "Keys drop when a character you already own shows up again: roll the gender with more of the characters you have the most keys on.",
-    "el gènere dels personatges, per saber si tirar $h, $w o $m: un sol cop, i a «Posar al dia» tria Homes, Dones o Tots dos abans d'enganxar": "the characters' gender, to know whether to roll $h, $w or $m: only once, and in «Catch up» choose Men, Women or Both before pasting",
+    "el gènere dels personatges, per saber si tirar $h, $w o $m: un sol cop": "the characters' gender, to know whether to roll $h, $w or $m: only once",
 }
 
 STRINGS = {"es": ES, "en": EN}

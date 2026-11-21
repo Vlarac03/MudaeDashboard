@@ -428,6 +428,13 @@ class Genere(Base):
         mudae.save_paste("genere-w", "Harry Potter", "Harry Potter 3/62\n\nHP\nHarry Potter and the Sorcerer's Stone\n4 más - Escriba $ima? para mostrar todos los alias.\n:western_anim: \n\nHermione Granger 💞 => jo\nNagini 💞 => pep\nLuna Lovegood\n")
         self.assertEqual(mudae.read_gender()["Harry Potter"], {"Hermione Granger": "w", "Nagini": "w", "Luna Lovegood": "w"})  # sense els àlies
 
+    def test_apunta_quins_generes_has_enganxat(self):  # per a «Pendent!»: desapareix el que ja has enganxat
+        mudae.save_paste("genere-h", "Harry Potter", "Harry Potter 3/9\n\nHP\n:western_anim: \n\nDobby\nHarry Potter 💞 => jo\n")
+        meta = mudae.read_meta()
+        self.assertTrue(meta.get("genere-h"))
+        self.assertFalse(meta.get("genere-w"))
+        self.assertEqual(meta["genere-u"], 9)  # 6 de Harry Potter i 3 de Howl, sense gènere
+
     def test_sense_res_no_es_desa(self):
         with self.assertRaises(ValueError):
             mudae.save_paste("genere-h", "", "Aixo no es de Mudae\n")

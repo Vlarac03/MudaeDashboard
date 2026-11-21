@@ -2401,6 +2401,12 @@ tuText.addEventListener('paste', () => setTimeout(() => pasteAll(tuText.value)))
 millText.addEventListener('paste', () => setTimeout(() => pasteAll(millText.value, millText, millMsg)));
 // «Pendent!»: el que depèn del teu servidor o de tu i encara no has enganxat, amb l'ordre que ho diu. No suposem res.
 const NEED = __NEED__;
+// un avís de gènere de «Pendent!» porta a «Posar al dia» amb aquell gènere ja triat
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-gen]'); if (!b) return;
+  kindSel.value = b.dataset.gen; try { localStorage.setItem('mudae-updKind', kindSel.value); } catch (e) {}
+  syncUpd(); txt.focus();
+});
 function pendDraw() {
   const out = [], add = (cmd, why, label) => out.push(`<li><button class="cmd" data-copy="${esc(cmd)}">${esc(label || cmd.trim())}</button> <span class="muted">${esc(why)}</span></li>`);
   if (RS.m == null || !RS.next) add('$tu', T('quan tornen les tirades i el reclam, i el poder de kakera'));
@@ -2410,7 +2416,9 @@ function pendDraw() {
   if (!M.opps) add('$opz', T('quins personatges tenen esferes (enganxa cada pàgina)'));
   if ((M.nf == null || !M.tv) && !M.ktCost) add('$kt', T('la torre: quants pisos tens i quant costa el següent'));
   else if (M.nf == null || !M.tv) out.push(`<li>${goTo('mill', T('Millores'))} <span class="muted">${esc(T('la torre: marca els pisos que tens (o escriu el preu base de la torre)'))}</span></li>`);
-  NEED.forEach(([cmd, why, label]) => add(cmd, why, label));
+  NEED.forEach(([cmd, why, label, gen]) => gen
+    ? out.push(`<li><button type="button" class="go" data-goto="eines" data-gen="${esc(gen)}">${esc(label)} →</button> <span class="muted">${esc(why)}</span></li>`)
+    : add(cmd, why, label));
   document.getElementById('pendList').innerHTML = out.join('');
   document.getElementById('pend').hidden = !out.length;
 }
@@ -2655,11 +2663,15 @@ def write_dashboard(d, hist):
     sources = {s: [n, sp] for sp, ss in special_sources().items() for s, n in ss.items()}  # les especials, per la sèrie d'on surten
     all_cmd = "$imaa+os " + " $ ".join([x["name"] for x in series if x["name"] not in spec] + list(sources))
     mine_names = [x["name"] for x in series if x["name"] not in spec]
-    if mine_names and any(v["u"] for v in gstats.values()):  # «Pendent!»: el gènere dels personatges (un sol cop; no es veu al text, el tries a «Posar al dia»)
-        why = t("el gènere dels personatges, per saber si tirar $h, $w o $m: un sol cop, i a «Posar al dia» tria Homes, Dones o Tots dos abans d'enganxar")
-        for pre in ("$imaa+osh= ", "$imaa+osw= ", "$imaa+oswh "):
-            full = pre + " $ ".join(mine_names)
-            need.append([full if len(full) <= 1900 else pre, why, pre.strip() + " …"])  # massa llarga per a un missatge: només el principi
+    gmeta, gu = read_meta(), sum(v["u"] for v in gstats.values())
+    gdone = [c for c in GENDER_CODES if gmeta.get("genere-" + c)]
+    if mine_names and gu and not (len(gdone) == len(GENDER_CODES) and gu <= gmeta.get("genere-u", 0)):
+        # «Pendent!»: un botó per cada gènere que encara no has enganxat; porta a «Posar al dia» amb aquell gènere triat.
+        # Quan els tres són enganxats, només torna si han sortit personatges nous (amb més sense gènere que l'últim cop).
+        why = t("el gènere dels personatges, per saber si tirar $h, $w o $m: un sol cop")
+        labels = {"h": t("Homes de les sèries ($imaa+osh=)"), "w": t("Dones de les sèries ($imaa+osw=)"), "x": t("Tots dos gèneres ($imaa+oswh)")}
+        for c in [c for c in GENDER_CODES if c not in gdone] or list(GENDER_CODES):
+            need.append(["", why, labels[c], "genere-" + c])
     mill_cmds = " ".join(cmd_html(c) for c in ("$k", "$kt", "$opz", "$opp <personatge>", "$os", "$mmy=", "$bonus", "$tu"))  # el que llegeix Millores
     paste_cmds = (" ".join(cmd_html(c) for c in ("$tu", "$settings", "$p", "$k", "$kt", "$opz", "$opp <personatge>", "$os", "$mmy=", "$bonus", "$mma+s", "$wl", "$imaso <sèrie>"))
                   + (f' <button class="cmd" id="todayAll" data-copy="{e(all_cmd)}" data-tip="{e(t("Totes les teves sèries"))}">$imaa+os</button>' if len(all_cmd) > 9 else "")
@@ -3294,6 +3306,10 @@ def save_gender(code, text, serie=""):
     for s, names in found.items():
         data.setdefault(s, {}).update(dict.fromkeys(names, code))
     (DADES / "genere.json").write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+    meta = read_meta()  # per a «Pendent!»: quins gèneres ja has enganxat, i quants personatges quedaven sense gènere
+    meta["genere-" + code] = dt.date.today().isoformat()
+    meta["genere-u"] = sum(v["u"] for v in gender_stats(read_series()).values())
+    (DADES / "actualitzat.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
 def gender_stats(rows):
