@@ -59,12 +59,33 @@ const sample = n => fs.readFileSync(path.join(mostres, n + '.txt'), 'utf8');
   await setTower(5); assert.match(await floor8(), /Red and rainbow kakera give \+250/);
   await setTower(3);
   await setTower(1); assert.match(await floor8(), /4% less power/);
+  // la llista de pisos va per l'ordre recomanat de la torre on ets
+  const order = () => page.evaluate(() => [...document.querySelectorAll('input[data-floor]')].map(i => +i.dataset.floor));
+  await setTower(1); assert.deepEqual(await order(), [8, 7, 11, 6, 1, 5, 4, 2, 9, 10, 3, 12]);
+  await setTower(5); assert.deepEqual((await order()).slice(0, 4), [7, 8, 11, 12]);
+  await setTower(11); assert.equal((await order())[0], 11);
+  await setTower(3);
+
   // un $kt d'una torre que no coneixem (la 3): els seus efectes surten sense haver de fer res, i es recorden en canviar de torre
   await paste(sample('kt3torre'));
   assert.match(await page.evaluate(() => document.querySelector('input[data-floor="2"]').nextElementSibling.textContent), /inventat/);
   assert.doesNotMatch(await page.textContent('#towerNext'), /paste your \$kt to see/);  // ja no avisa: els coneix
   await setTower(1); await setTower(3);
   assert.match(await page.evaluate(() => document.querySelector('input[data-floor="2"]').nextElementSibling.textContent), /inventat/);
+  await paste(sample('kt10pisos'));
+
+  // la botiga d'esferes només proposa compres (amb «Fet») quan toca: sense la millora 10 a tots, només l'avís
+  await page.evaluate(() => localStorage.setItem('mudae-millores', JSON.stringify({ b: {}, f: [], tv: null, sp: 9000, shop: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    opp: { name: 'Rem', levels: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }, opps: { Rem: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] } })));
+  await open();
+  assert.equal(await page.evaluate(() => document.querySelectorAll('#shopNext [data-done]').length), 0);
+  assert.match(await page.textContent('#shopNext'), /Not yet/);
+  await page.evaluate(() => localStorage.setItem('mudae-millores', JSON.stringify({ b: {}, f: [], tv: null, sp: 9000, shop: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    opp: { name: 'Rem', levels: [6, 6, 6, 6, 6, 6, 1, 1, 1, 1] }, opps: { Rem: [6, 6, 6, 6, 6, 6, 1, 1, 1, 1] }, keys: [['Rem', 30]],
+    bonus: [['$oh bono diario', '+2000 spheres, 4% de obtener 1 $oq']] })));  // la 10 a tots (100) i les 9, 5, 4, 3 i 2 als que et surten sovint
+  await open();
+  assert.equal(await page.evaluate(() => document.querySelectorAll('#shopNext [data-done]').length), 1);
+  assert.doesNotMatch(await page.textContent('#shopNext'), /Not yet/);
   await paste(sample('kt10pisos'));
 
   // 4. dades velles: un $kt de fa 10 dies atenua la targeta i ho diu

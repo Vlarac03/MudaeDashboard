@@ -1723,10 +1723,18 @@ function bonusFacts(B) {
 // Efectes de cada pis a la torre `t` (1 és la primera), de la wiki de Mudae («Kakera Tower/Perks»); null: com a la llista (la torre 1).
 // El que surt del $kt enganxat mana sobre això. Les torres de la 2 a la 100 canvien molts pisos: la 2 és igual a la del $kt d'un amic.
 const STARWISH = [50, 25, 20, 16, 13, 10, 8, 6, 5, 4, 3, 3, 2, 2, 2, 1, 1, 1, 1, 1];  // la wiki dona fins a la torre 20; després, +1 %
+// Ordre recomanat de cada pis segons la torre. Proposta de Claude amb la taula de la wiki (canviar-ho si Victor ho veu diferent):
+// torres 1-4, el de sempre (-% de poder de reacció i poder màxim a dalt); 5-8, el 8 ja no abaixa el cost sinó que dona +250 de kakera vermella/arc de Sant Martí i el 12
+// dona +165 de kakera del caos; a la 9 el 5 passa a +0,5 % i va al final; a la 11 el 11 deixa de donar tirades i dona +30-50 % de kakera de Bronze IV i Silver IV;
+// a la 23 el 4 només dona +1 % de tercera clau i el 9 +50 de kakera.
+function towerOrder(t) {
+  return t <= 4 ? TOWER : t <= 8 ? [7, 8, 11, 12, 6, 1, 5, 4, 2, 9, 10, 3] : t <= 10 ? [7, 8, 11, 12, 6, 1, 4, 2, 9, 10, 3, 5]
+    : t <= 22 ? [11, 7, 8, 1, 6, 4, 2, 9, 10, 5, 12, 3] : [11, 7, 8, 1, 6, 9, 2, 4, 10, 5, 12, 3];
+}
 function towerFx(n, t) {
   if (t === 1) return null;
   switch (n) {
-    case 2: return T('El teu $starwish surt un {p} % més', { p: STARWISH[t - 1] || 1 });
+    case 2: return t > STARWISH.length ? T('El teu $starwish surt un {p} % més (aprox.)', { p: 1 }) : T('El teu $starwish surt un {p} % més', { p: STARWISH[t - 1] });
     case 3: return T('Menys límit de $limroul: {a} $wa, {a} $ha, {g} $wg, {g} $hg', { a: 140, g: 70 });
     case 4: return t === 2 ? null : t <= 22 ? T('+{p} % de segona clau si el personatge és a la wishlist', { p: 5 }) : T('+1 % de tercera clau si el personatge és a la wishlist');
     case 5: return t <= 8 ? T('El $oh et destapa 1 botó') : T("+0,5 % de doblar les esferes d'un botó d'esferes del $oh");
@@ -1746,7 +1754,7 @@ function towerFx(n, t) {
 // El preu i el pis recomanat surten d'aquí: amb marques que no quadren, no recomana cap pis (podria ser un que ja tens).
 function towerNext(M) {
   const f = M.f || [], built = M.nf != null ? M.nf : (M.t || 0) * 12 + f.length, tw = Math.floor(built / 12), ok = f.length === built % 12;
-  return { tw, built, ok, cost: M.tv ? M.tv * (built + 1) * (tw >= X10_FROM ? 10 : 1) : null, rec: ok ? TOWER.find(n => !f.includes(n)) : null };
+  return { tw, built, ok, cost: M.tv ? M.tv * (built + 1) * (tw >= X10_FROM ? 10 : 1) : null, rec: ok ? towerOrder(tw + 1).find(n => !f.includes(n)) : null };
 }
 // El $kt diu quants pisos tens en total: d'aquí surt la torre on ets. Si canvies de torre, els pisos marcats eren de l'anterior;
 // si en tens més de marcats que pisos té la torre, no són bons
@@ -1895,7 +1903,8 @@ function millDraw() {
   const { tw, built, ok, cost, rec } = towerNext(M), here = built - tw * 12;
   $id('towerNum').value = Math.min(100, tw + 1);
   // els efectes de la torre on ets: els del $kt que has enganxat o, si no, els de la wiki (la llista de baix és la de la torre 1)
-  const tn = Math.min(100, tw + 1), seen = (M.fdAll || {})[tn] || {}, fxOf = n => seen[n] || towerFx(n, tn);
+  const tn = Math.min(100, tw + 1), steps = $id('towerBox').querySelector('ul.steps'), seen = (M.fdAll || {})[tn] || {}, fxOf = n => seen[n] || towerFx(n, tn);
+  towerOrder(tn).forEach(n => steps.append(steps.querySelector(`input[data-floor="${n}"]`).closest('li')));  // els pisos, per ordre de recomanació
   document.querySelectorAll('input[data-floor]').forEach(inp => {
     const sp = inp.nextElementSibling, n = +inp.dataset.floor; sp.dataset.def ||= sp.textContent;
     sp.textContent = fxOf(n) ? `[${n}] ${fxOf(n)}` : sp.dataset.def;
@@ -2007,7 +2016,7 @@ function millDraw() {
       : done10 ? '<li class="muted">' + esc(T('Encara no: abans, les millores 9, 5, 4, 3 i 2 als personatges que et surten més. La botiga només reforça el que ja hi has posat, i cada nivell costa 4.000 o més.')) + '</li>'
       : '<li class="muted">' + esc(T('Encara no: abans, la millora 10 als teus personatges (en tens {n} de {t}). Cada 1.000 esferes et donen +20 cada dia, i gairebé tota la botiga només reforça les millores 1-9, que funcionen quan et surt el personatge.', { n: n10, t: goal10 })) + '</li>')
     + (!M.shop ? li(T('Enganxa el $os per veure-hi els nivells'))
-    : buyList(shopBuys, '$os', SDESC, 'shop') || li(T('Ja tens al màxim les que et serveixen. Les altres reforcen millores que cap personatge teu no té.')) + (stage3 ? li(STAGE3) : ''));
+    : (shopOk ? buyList(shopBuys, '$os', SDESC, 'shop') || li(T('Ja tens al màxim les que et serveixen. Les altres reforcen millores que cap personatge teu no té.')) : '') + (stage3 ? li(STAGE3) : ''));
   if (shopOk && shopBuys.length && M.sp >= shopBuys[0].cost) ready.push(['shopBox', T("Botiga d'esferes"), `${T('Millora {n}', { n: shopBuys[0].n })} · LVL ${shopBuys[0].l}`, shopBuys[0].cost]);
   millAlert(ready);
   if (window.pendDraw) pendDraw();
