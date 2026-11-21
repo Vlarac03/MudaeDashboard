@@ -907,9 +907,9 @@ function recLine(serie) {
     const r = top ? recTop(scopeSel.value, Math.max(1, parseInt(topIn.value, 10) || 10)) : recommend(goal, t);
     topIn.hidden = !top;
     try { localStorage.setItem('mudae-recGoal', goal); localStorage.setItem('mudae-recScope', scopeSel.value); localStorage.setItem('mudae-recTop', topIn.value); } catch (e) {}
-    const go = '<button type="button" class="go" data-goto="eines">' + esc(T('Posar al dia')) + ' →</button>';
+    const go = '<button type="button" class="cmd to" data-goto="eines">' + esc(T('Posar al dia')) + ' →</button>';
     if (r.nokeys) {
-      out.innerHTML = '<p class="muted" style="margin:0">' + esc(T('Enganxa el $mmy= per saber quins et surten més.')) + '</p> <button type="button" class="go" data-goto="mill">' + esc(T('Millores')) + ' →</button>';
+      out.innerHTML = '<p class="muted" style="margin:0">' + esc(T('Enganxa el $mmy= per saber quins et surten més.')) + '</p> <button type="button" class="cmd to" data-goto="mill">' + esc(T('Millores')) + ' →</button>';
       return;
     }
     if (r.none) {
@@ -1313,6 +1313,7 @@ td.sub { color:var(--muted); }
 .cmd:hover, .copybtn:hover { border-color:var(--accent); background:rgba(var(--acc-rgb),.14); }
 .copybtn { font:650 11.5px var(--sans); margin-left:8px; padding:2px 10px; border-radius:20px; vertical-align:1px; }
 .cmd.done, .copybtn.done { background:var(--good-soft); color:var(--good); border-color:transparent; }
+.cmd.to { font:650 12.5px var(--sans); cursor:pointer; padding:3px 11px; white-space:normal; text-align:left; }  /* el requadre de .cmd, però porta a una altra pestanya en comptes de copiar */
 .recvbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; color:var(--ink-2); font-size:13.5px; margin:0; }
 .foot { padding:12px 18px; text-align:center; font-size:12px; color:var(--muted); }
 .panel > div:empty { display:none; }
@@ -2339,7 +2340,7 @@ pdDraw();
 JS_PASTE = r"""
 // La casella d'Avui: hi enganxes qualsevol missatge de Mudae i el tauler l'envia on toca
 const tuText = document.getElementById('tuText'), tuMsg = document.getElementById('tuMsg');
-const goTo = (v, name) => `<button type="button" class="go" data-goto="${v}">${esc(name)} →</button>`;
+const goTo = (v, name) => `<button type="button" class="cmd to" data-goto="${v}">${esc(name)} →</button>`;
 function pasteAll(text, area = tuText, msg = tuMsg) {  // area i msg: la casella on has enganxat i on surt el missatge
   text = noEmoji(text);
   if (!text.trim()) return;
@@ -2417,7 +2418,7 @@ function pendDraw() {
   if ((M.nf == null || !M.tv) && !M.ktCost) add('$kt', T('la torre: quants pisos tens i quant costa el següent'));
   else if (M.nf == null || !M.tv) out.push(`<li>${goTo('mill', T('Millores'))} <span class="muted">${esc(T('la torre: marca els pisos que tens (o escriu el preu base de la torre)'))}</span></li>`);
   NEED.forEach(([cmd, why, label, gen]) => gen
-    ? out.push(`<li><button type="button" class="go" data-goto="eines" data-gen="${esc(gen)}">${esc(label)} →</button> <span class="muted">${esc(why)}</span></li>`)
+    ? out.push(`<li><button type="button" class="cmd to" data-goto="eines" data-gen="${esc(gen)}">${esc(label)} →</button> <span class="muted">${esc(why)}</span></li>`)
     : add(cmd, why, label));
   document.getElementById('pendList').innerHTML = out.join('');
   document.getElementById('pend').hidden = !out.length;
