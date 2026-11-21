@@ -844,7 +844,8 @@ const album = document.querySelector('#coll .album'), chips = document.getElemen
 const ORDER = { wish: 0, alta: 1, other: 2, free: 3, mine: 4 };  // primer el que et falta
 const kind = c => c.st === 'Meu' ? 'mine' : c.st !== 'Lliure' ? 'other' : c.wl ? 'wish' : c.prio === 'Alta' ? 'alta' : 'free';
 let cur = Object.keys(COLL)[0];
-if (!cur) document.getElementById('coll').querySelector('.album').innerHTML =
+// sense cap sèrie, el missatge va on hi hauria les barres: l'àlbum (amagat) es queda, que la resta del codi el fa servir
+if (!cur) document.querySelector('#coll .bars').innerHTML =
   '<p class="muted" style="margin:0">' + esc(T("Encara no col·lecciones cap sèrie. Afegeix-ne una a «Posar al dia»: tria «Una sèrie» i «Sèrie nova…».")) + '</p>';
 try { const saved = localStorage.getItem('mudae-coll'); if (saved in COLL) cur = saved; hide.checked = localStorage.getItem('mudae-hide') === '1'; } catch (e) {}
 function draw() {
@@ -1651,7 +1652,9 @@ function readMudae(text, tv) {
   const out = {}, have = text.match(/(?:Tienes|You have|Tens|Vous avez|Hai|Du hast|Você tem)\s+(\d[\d.,]*)/i);
   // $bonus: «· Rolls por hora: +8 (6 $k + 1 $kl + 1 $kt)», una línia per bonus, en dues pàgines (la 2 no porta ni el $limroul ni el $kl).
   // El $os també parla de megaesferes, però porta [LVL n]. Les etiquetes angleses són suposades.
-  if (/bonos del jugador|player bonus|\$limroul|\$oh\b[^:\n]*(?:bono|bonus)[^:\n]*:|megaspheres?\s*:|spheres adicionales|additional spheres/i.test(text) && !LVL.test(text) && !/\$build/i.test(text)) {  // el $kt també parla del $limroul (pis 3)
+  // També sense cap d'aquestes línies: si almenys 3 diuen d'on surten («(6 $k + 1 $kl + 1 $kt)», «($kt)»), és el $bonus
+  const srcs = (text.match(/\([^)\n]*\$(?:kl?|kt|bk|bw|sw|op|shop)\b[^)\n]*\)/g) || []).length;
+  if ((srcs >= 3 || /bonos del jugador|player bonus|\$limroul|\$oh\b[^:\n]*(?:bono|bonus)[^:\n]*:|megaspheres?\s*:|spheres adicionales|additional spheres/i.test(text)) && !LVL.test(text) && !/\$build/i.test(text)) {  // el $kt també parla del $limroul (pis 3)
     const rows = text.split(/\r?\n/).map(l => l.match(/^\s*(?:\d+\.\s*)?[·•*-]?\s*([^:]+?)\s*:\s*(.+?)\s*$/)).filter(Boolean).map(m => [m[1], m[2]]);
     if (rows.length) out.bonus = rows;  // cap línia entesa: com si no l'haguessis enganxat («Pendent!» el continua demanant)
   } else if (/\$shoprefund/i.test(text) && LVL.test(text)) {  // $os: la botiga d'esferes
@@ -1663,17 +1666,23 @@ function readMudae(text, tv) {
     out.opp = { name: first > 0 ? rows[first - 1] : '', levels: levelsOf(text, perkMax) };
     if (have) out.sp = num(have[1]);
   } else if (/\$build/i.test(text)) {
-    const cost = text.match(/(?:cuesta|costs?|coûte|costa|kostet)\s+(\d[\d.,]*)/i);
+    const cost = text.match(/(?:cuesta|costs?|coûte|costa|kostet)[:\s]+(\d[\d.,]*)/i);
     if (cost) out.ktCost = num(cost[1]);
     // el $kt ho diu tot: «(+5.000 por piso, $towervalue)», «(+1 torre)» i una marca (✅) davant de cada pis fet de la torre on ets
     const step = text.match(/\+\s*(\d[\d.,]*)[^)\n]*\$towervalue/i), tw = text.match(/\(\s*\+\s*(\d+)\s*(?:torres?|towers?|tours?|torri|türme?)\b/i);
-    const done = [...text.matchAll(/^[ \t]*[^\s\[][^\[\n]*\[(\d{1,2})\]/gm)].map(m => +m[1]).filter(n => n >= 1 && n <= 12);
+    const done = [...new Set([...text.matchAll(/^[ \t]*[^\s\[][^\[\n]*\[(\d{1,2})\]/gm)].map(m => +m[1]).filter(n => n >= 1 && n <= 12))];
     if (step) out.tv = num(step[1]);
-    if (done.length) { out.t = tw ? +tw[1] : 0; out.f = done; out.nf = out.t * 12 + done.length; }
-    else if (cost && (out.tv || tv)) {  // sense marques: pel preu. De la torre 76 a la 100 (pisos 901-1.200) costa x10 (wiki)
-      const raw = Math.round(num(cost[1]) / (out.tv || tv));
-      out.nf = Math.max(0, (raw > 1200 ? Math.round(raw / 10) : raw) - 1);
-    }
+    // pel preu: el pis que toca és preu / preu base. De la torre 76 a la 100 (pisos 901-1.200) costa x10 (wiki)
+    const base = out.tv || tv, raw = cost && base ? Math.round(out.ktCost / base) : 0;
+    const byPrice = raw ? Math.max(0, (raw > 1200 ? Math.round(raw / 10) : raw) - 1) : null;
+    if (done.length) {
+      let t = tw ? +tw[1] : 0, f = done;
+      if (f.length === 12) { t++; f = []; }  // els 12 marcats: aquella torre ja és acabada
+      // el preu mana: si les marques o el «(+1 torre)» no hi quadren (una línia amb un emoji davant, un altre idioma…), la torre surt del preu,
+      // i les marques només es queden si en són tantes com pisos té aquella torre
+      if (byPrice != null && t * 12 + f.length !== byPrice) { t = Math.floor(byPrice / 12); f = f.length === byPrice % 12 ? f : null; }
+      if (f) { out.t = t; out.f = f; out.nf = t * 12 + f.length; } else out.nf = byPrice;
+    } else if (byPrice != null) out.nf = byPrice;  // sense marques: només pel preu
     if (have) out.k = num(have[1]);
   } else if (/\$bronze/i.test(text) && !/rewards/i.test(text)) {
     out.b = {};
@@ -1704,12 +1713,15 @@ function bonusFacts(B) {
     oh: get(/\$oh\b/i, /\+\s*(\d+)/), rt: get(/\$rt\b/i, /(\d+)\s*h/), wl: get(/(?:espacio|slot).*(?:lista de deseos|wishlist)|wishlist.*slot/i, /\+\s*(\d+)/) };
 }
 // Cada torre té 12 pisos, un de cada; la següent s'obre en acabar-la, amb els mateixos pisos però amb menys efecte (wiki de Mudae)
+// built: els pisos que tens en total (els del $kt o els que has marcat); tw: les torres acabades; ok: si les marques hi quadren.
+// El preu i el pis recomanat surten d'aquí: amb marques que no quadren, no recomana cap pis (podria ser un que ja tens).
 function towerNext(M) {
-  const tw = M.t || 0, built = tw * 12 + M.f.length;
-  return { tw, built, cost: M.tv ? M.tv * (built + 1) * (tw >= 75 ? 10 : 1) : null, rec: TOWER.find(n => !M.f.includes(n)) };  // de la torre 76 en amunt, x10
+  const f = M.f || [], built = M.nf != null ? M.nf : (M.t || 0) * 12 + f.length, tw = Math.floor(built / 12), ok = f.length === built % 12;
+  return { tw, built, ok, cost: M.tv ? M.tv * (built + 1) * (tw >= 75 ? 10 : 1) : null, rec: ok ? TOWER.find(n => !f.includes(n)) : null };  // de la torre 76 en amunt, x10
 }
-// El $kt diu quants pisos tens en total: d'aquí surt la torre on ets. Si canvies de torre, els pisos marcats eren de l'anterior.
-function towerFromKt(M, nf) { const t = Math.floor(nf / 12); return { t, f: t === (M.t || 0) ? M.f : [] }; }
+// El $kt diu quants pisos tens en total: d'aquí surt la torre on ets. Si canvies de torre, els pisos marcats eren de l'anterior;
+// si en tens més de marcats que pisos té la torre, no són bons
+function towerFromKt(M, nf) { const t = Math.floor(nf / 12), f = M.f || []; return { t, f: t === (M.t || 0) && f.length <= nf % 12 ? f : [] }; }
 // Esferes posades a un personatge: les millores 1-5 costen 200, 400, 600, 800, 1.000 i 2.000 per nivell; les 6-10, 1.000
 const spent = lv => lv.reduce((s, l, i) => s + (i < 5 ? PCOST.slice(0, l).reduce((a, b) => a + b, 0) : l ? 1000 : 0), 0);
 // $or <personatge> et torna el 90 % de tot el que hi has posat ($spheres). Si té esferes a les 1-9 (que només funcionen quan et surt),
@@ -1743,8 +1755,8 @@ function nextBuys(levels, order, max, cost, count = 3) {
 }
 // El preu base de la torre ($towervalue) és del servidor: l'escrius tu o surt del $kt si has marcat els pisos que tens (preu = base × (pisos + 1))
 function towerGuess(M) {
-  const { tw, built } = towerNext(M), v = M.ktCost && built ? Math.round(M.ktCost / (built + 1) / (tw >= 75 ? 10 : 1)) : 0;
-  return v >= 5000 && v <= 50000 ? v : null;
+  const { tw, built } = towerNext(M), x = (built + 1) * (tw >= 75 ? 10 : 1), v = M.ktCost && built ? Math.round(M.ktCost / x) : 0;
+  return v >= 5000 && v <= 50000 && v * x === M.ktCost ? v : null;  // exacte: si no quadra, el $kt és d'abans de l'últim pis
 }
 // Llocs de la wishlist: 7 de base (wiki de Mudae) més els del $bonus; sense $bonus, no ho sabem
 // Copiat de Discord, les línies poden començar amb el codi d'un emoji («:addroll: · Rolls por hora…», «<:sp:123>»): el traiem
@@ -1771,7 +1783,7 @@ function millDraw() {
   $id('millSum').textContent = [k !== null ? T('Kakera: {n}', { n: fmtK(k) }) : '', M.sp != null ? T('Esferes: {n}', { n: fmtK(M.sp) }) : '']
     .filter(Boolean).join(' · ') || T('Encara no has enganxat res');
   // el que encara no ha enganxat: cada servidor té els seus preus i cada jugador els seus nivells
-  const miss = [!M.bp && '$k', M.nf == null && '$kt', !M.opp && '$opp <personatge>', !M.shop && '$os', !M.keys && '$mmy=', !hasBonus() && '$bonus'].filter(Boolean);
+  const miss = [!M.bp && '$k', (M.nf == null || !M.tv) && !M.ktCost && '$kt', !M.opp && '$opp <personatge>', !M.shop && '$os', !M.keys && '$mmy=', !hasBonus() && '$bonus'].filter(Boolean);
   $id('millMiss').textContent = miss.length ? T('Per començar, enganxa: {list}', { list: miss.join(' · ') }) : '';
   // $bonus: el que en treus i, plegada, la llista sencera (el valor en negreta i d'on surt, a part)
   const BF = bonusFacts(M.bonus), li = s => '<li>' + esc(s) + '</li>', bl = [];
@@ -1818,13 +1830,14 @@ function millDraw() {
   // torre: els pisos marcats són els de la torre on ets (M.t torres acabades), el que en diu el $kt i el pis recomanat
   document.querySelectorAll('input[data-floor]').forEach(i => { i.checked = M.f.includes(+i.dataset.floor); });
   $id('towerValue').value = M.tv ?? '';
-  const { tw, built, cost, rec } = towerNext(M);
-  let html = cost == null ? T('Torre {t} · pisos {n}/12 · per saber què costa el següent, marca els pisos que tens i enganxa el $kt (o escriu el preu base)', { t: tw + 1, n: M.f.length })
-    : T('Torre {t} · pisos {n}/12 · el següent costa {c}', { t: tw + 1, n: M.f.length, c: fmtK(cost) });
+  const { tw, built, ok, cost, rec } = towerNext(M), here = built - tw * 12;
+  $id('towerNum').value = Math.min(100, tw + 1);
+  let html = cost == null ? T('Torre {t} · pisos {n}/12 · per saber què costa el següent, marca els pisos que tens i enganxa el $kt (o escriu el preu base)', { t: tw + 1, n: here })
+    : T('Torre {t} · pisos {n}/12 · el següent costa {c}', { t: tw + 1, n: here, c: fmtK(cost) });
   if (cost != null && k !== null) html += ' · ' + (k >= cost ? T('el pots pagar') : T('et falten {n}', { n: fmtK(cost - k) }));
   if (cost != null && k !== null && k >= cost && tw < 100) ready.push(['towerBox', T('Torre'), rec ? '$build ' + rec : T('el pis següent'), cost]);
   html = esc(html);
-  if (M.nf != null && M.nf !== built) html += '<br><span class="tag bad">' + esc(T('Segons el $kt tens {n} pisos: marca quins són a la llista', { n: M.nf })) + '</span>';
+  if (!ok) html += '<br><span class="tag bad">' + esc(T('Segons el $kt, a la torre {t} tens {n} pisos: marca quins són a la llista', { t: tw + 1, n: here })) + '</span>';
   if (rec) html += `<br>${esc(T('Recomanat:'))} <button class="cmd" data-copy="$build ${rec}">$build ${rec}</button>`;
   if (tw >= 100) html = esc(T('Tens les 100 torres: és el màxim de Mudae. La kakera, als kakeraloots ($kl).'));  // wiki «Kakera Tower/Prices»
   $id('towerNext').innerHTML = html;
@@ -1935,10 +1948,16 @@ document.addEventListener('change', ev => {
   const el = ev.target;
   if (el.dataset && el.dataset.badge) M.b[el.dataset.badge] = +el.value;
   else if (el.dataset && el.dataset.floor) {
+    M.t = towerNext(M).tw;
     M.f = [...document.querySelectorAll('input[data-floor]:checked')].map(i => +i.dataset.floor);
-    if (M.f.length === 12) { M.t = (M.t || 0) + 1; M.f = []; }  // torre acabada: la següent comença buida
+    if (M.f.length === 12) { M.t++; M.f = []; }  // torre acabada: la següent comença buida
+    M.nf = M.t * 12 + M.f.length;  // has marcat un pis: mana el que marques, no el $kt d'abans
     if (!M.tv) M.tv = towerGuess(M);
-    if (M.tv) M.nf = towerNext(M).built;  // has marcat un pis nou: mana el que marques, no el $kt d'abans
+  }
+  else if (el.id === 'towerNum') {  // la torre on ets, a mà (si no has enganxat el $kt i no ets a la primera)
+    M.t = Math.min(100, Math.max(1, Math.round(num(el.value)) || 1)) - 1;
+    if (M.t !== towerNext(M).tw) M.f = [];  // els pisos marcats eren d'una altra torre
+    M.nf = M.t * 12 + M.f.length;
   }
   else if (el.id === 'towerValue') M.tv = num(el.value) ? Math.min(50000, Math.max(5000, num(el.value))) : null;
   else return;
@@ -1953,7 +1972,10 @@ document.addEventListener('change', ev => {
 }
 millDraw();
 // el $tu enganxat a «Què toca ara» també posa al dia la kakera i les esferes d'aquí
-window.millTu = text => { const got = readMudae(text, M.tv); if (got.k == null && got.sp == null) return; Object.assign(M, got); millSave(); millDraw(); };
+window.millTu = text => {  // només la kakera i les esferes: la resta del que pugui semblar-hi, no
+  const got = readMudae(text, M.tv); if (got.k == null && got.sp == null) return;
+  if (got.k != null) M.k = got.k; if (got.sp != null) M.sp = got.sp; millSave(); millDraw();
+};
 """
 
 
@@ -2064,7 +2086,8 @@ function pasteAll(text, area = tuText, msg = tuMsg) {  // area i msg: la casella
   text = noEmoji(text);
   if (!text.trim()) return;
   // el $bonus parla del $rt i de «claims = 30»: que no es prengui per un $tu (capçalera, o moltes línies amb la font entre parèntesis: «($kt)»)
-  const bonusLike = /bonos del jugador|player bonus/i.test(text) || (text.match(/\([^)\n]*\$(?:kl?|kt|bk|bw|sw|op|shop)\b[^)\n]*\)/g) || []).length >= 3;
+  // i el $kt sencer parla de «+1 roll por hora» i del $dk (pisos 11 i 6): tampoc no és un $tu
+  const bonusLike = /bonos del jugador|player bonus|\$build\b|\$towervalue/i.test(text) || (text.match(/\([^)\n]*\$(?:kl?|kt|bk|bw|sw|op|shop)\b[^)\n]*\)/g) || []).length >= 3;
   const tu = bonusLike ? {} : readTu(text), prev = txt.value;
   if (('claim' in tu || 'rolls' in tu) && Object.keys(tu).length > 2) {  // el $tu: marca les caselles (i la kakera i les esferes de Millores)
     window.millTu(text);
@@ -2126,8 +2149,8 @@ function pendDraw() {
   if (!hasBonus()) add('$bonus', T('cada quant pots fer el $rt i quants llocs tens a la wishlist'));
   if (!M.bp) add('$k', T('les teves insígnies i quant costen al servidor'));
   if (!M.opps) add('$opz', T('quins personatges tenen esferes (enganxa cada pàgina)'));
-  if (M.nf == null && !M.ktCost) add('$kt', T('la torre: quants pisos tens i quant costa el següent'));
-  else if (M.nf == null) out.push(`<li>${goTo('mill', T('Millores'))} <span class="muted">${esc(T('la torre: marca els pisos que tens (o escriu el preu base de la torre)'))}</span></li>`);
+  if ((M.nf == null || !M.tv) && !M.ktCost) add('$kt', T('la torre: quants pisos tens i quant costa el següent'));
+  else if (M.nf == null || !M.tv) out.push(`<li>${goTo('mill', T('Millores'))} <span class="muted">${esc(T('la torre: marca els pisos que tens (o escriu el preu base de la torre)'))}</span></li>`);
   NEED.forEach(([cmd, why]) => add(cmd, why));
   document.getElementById('pendList').innerHTML = out.join('');
   document.getElementById('pend').hidden = !out.length;
@@ -2549,6 +2572,7 @@ def write_dashboard(d, hist):
   <p class="muted" id="kakeraNext" style="margin:0;font-size:13px" hidden></p>
   <ul class="steps">{tower_rows}</ul>
   <p class="muted" style="margin:0;font-size:13px">{T_("Marca els pisos que ja tens de la torre on ets. Cada torre té 12 pisos, un de cada: quan l'acabes, comença la següent, amb els mateixos pisos però amb menys efecte (els de la llista són els de la primera). Cada pis costa més que l'anterior, triïs el que triïs: construeix primer els de dalt. Amb $destroy et torna la kakera.")}
+   <label style="white-space:nowrap">{T_("Torre núm.:")} <input type="number" id="towerNum" min="1" max="100" style="width:64px"></label>
    <label style="white-space:nowrap">{T_("Preu base ($towervalue):")} <input type="text" id="towerValue" inputmode="numeric" style="width:90px" aria-label="$towervalue"></label></p>
  </section>
 </div>
