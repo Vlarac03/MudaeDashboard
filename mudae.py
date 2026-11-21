@@ -1641,6 +1641,7 @@ const BADGES = __BADGES__, PLAN = __PLAN__, TOWER = __TOWER__, PORD = __PORD__, 
 const PCOST = [200, 400, 600, 800, 1000, 2000];
 const perkMax = n => n <= 5 ? 6 : 1, perkCost = (n, l) => n <= 5 ? PCOST[l] : 1000;
 const shopMax = () => 10, shopCost = (n, l) => 4000 * (l + 1);
+const STALE_DAYS = 7;  // shortcut: llindar triat per Claude; canviar-lo si Victor en vol un altre
 const KEYS_OFTEN = 10;  // shortcut: llindar triat per Claude (una clau cada cop que et surt un personatge teu); canviar-lo si Victor en vol un altre
 const num = t => Number(String(t).replace(/[^\d]/g, ''));
 const fmtK = n => n.toLocaleString(document.documentElement.lang);
@@ -1769,6 +1770,33 @@ function millLoad() { try { return Object.assign({ b: {}, f: [], tv: null }, JSO
 let M = millLoad();
 const millSave = () => { try { localStorage.setItem('mudae-millores', JSON.stringify(M)); } catch (e) {} };
 const $id = id => document.getElementById(id);
+// «Fet»: ho has comprat a Mudae; el tauler apunta el nivell nou i descompta el que costa, sense tornar a enganxar el $k, $kt, $opp o $os.
+// Es pot desfer (només l'última vegada: la còpia d'abans és a la memòria).
+let undoState = null;
+const doneBtn = (kind, a, b, cost) => ` <button type="button" class="tab" data-done="${kind}:${a}:${b}:${cost || 0}">${esc(T('Fet'))}</button>`;
+function millDone(spec) {
+  const [kind, a, b, cost] = spec.split(':'), n = +a, l = +b, c = +cost, snap = JSON.stringify(M);
+  if (kind === 'badge') { M.b[a] = l; if (M.k != null) M.k = Math.max(0, M.k - c); }
+  else if (kind === 'floor') {
+    const { tw, built } = towerNext(M);
+    M.t = tw; M.f = [...(M.f || []), n];
+    if (M.f.length === 12) { M.t++; M.f = []; }
+    M.nf = built + 1;
+    if (M.k != null) M.k = Math.max(0, M.k - c);
+  } else if (kind === 'perk' && M.opp) {
+    M.opp.levels[n - 1] = l; M.opps = { ...M.opps, [M.opp.name]: M.opp.levels };
+    if (M.sp != null) M.sp = Math.max(0, M.sp - c);
+  } else if (kind === 'shop' && M.shop) { M.shop[n - 1] = l; if (M.sp != null) M.sp = Math.max(0, M.sp - c); }
+  else return;
+  M.at = { ...M.at, ...Object.fromEntries({ badge: ['$k'], floor: ['$kt'], perk: ['$opp'], shop: ['$os'] }[kind].map(x => [x, Date.now()])) };
+  undoState = snap; millSave(); millDraw();
+  millMsg.innerHTML = '<span class="tag good">' + esc(T('Apuntat')) + '</span> <button type="button" class="tab" data-undo="1">' + esc(T('Desfer')) + '</button>';
+}
+document.addEventListener('click', ev => {
+  const d = ev.target.closest && ev.target.closest('[data-done]'), u = ev.target.closest && ev.target.closest('[data-undo]');
+  if (d) millDone(d.dataset.done);
+  else if (u && undoState) { M = Object.assign({ b: {}, f: [], tv: null }, JSON.parse(undoState)); undoState = null; millSave(); millDraw(); millMsg.textContent = ''; }
+});
 // A dalt d'Avui, una línia per targeta de Millores on ja pots pagar la primera compra recomanada; el botó porta a la targeta
 function millAlert(ready) {
   const ul = $id('alertsList');
@@ -1784,7 +1812,12 @@ function millDraw() {
     .filter(Boolean).join(' · ') || T('Encara no has enganxat res');
   // el que encara no ha enganxat: cada servidor té els seus preus i cada jugador els seus nivells
   const miss = [!M.bp && '$k', (M.nf == null || !M.tv) && !M.ktCost && '$kt', !M.opp && '$opp <personatge>', !M.shop && '$os', !M.keys && '$mmy=', !hasBonus() && '$bonus'].filter(Boolean);
-  $id('millMiss').textContent = miss.length ? T('Per començar, enganxa: {list}', { list: miss.join(' · ') }) : '';
+  // fa més de STALE_DAYS dies que no enganxes: el que depèn de la kakera, els nivells i els preus canvia. Les targetes d'aquest ordre s'atenuen.
+  const old = Object.entries(M.at || {}).filter(([, t]) => Date.now() - t > STALE_DAYS * 864e5).map(([c, t]) => `${c} (${T('{n} d', { n: Math.floor((Date.now() - t) / 864e5) })})`);
+  const stale = c => (M.at || {})[c] && Date.now() - M.at[c] > STALE_DAYS * 864e5;
+  for (const [box, cmd] of [['towerBox', '$kt'], ['badgeBox', '$k'], ['perkBox', '$opp'], ['shopBox', '$os']]) $id(box).style.opacity = stale(cmd) ? '.6' : '';
+  $id('millMiss').textContent = [miss.length ? T('Per començar, enganxa: {list}', { list: miss.join(' · ') }) : '',
+    old.length ? T('Dades velles (més de {d} dies), torna-les a enganxar: {list}', { d: STALE_DAYS, list: old.join(' · ') }) : ''].filter(Boolean).join(' · ');
   // $bonus: el que en treus i, plegada, la llista sencera (el valor en negreta i d'on surt, a part)
   const BF = bonusFacts(M.bonus), li = s => '<li>' + esc(s) + '</li>', bl = [];
   if (BF.pmax && BF.pcost) bl.push(li(T('Amb el poder ple ({p} %) pots reaccionar a {n} botons de kakera: cadascun en gasta {c} %.', { p: BF.pmax, n: Math.floor(BF.pmax / BF.pcost), c: BF.pcost })));
@@ -1814,6 +1847,7 @@ function millDraw() {
     if (!next.length && cost && k !== null && k >= cost) ready.push(['badgeBox', T('Insígnies'), `${n} ${['I', 'II', 'III', 'IV'][l - 1]}`, cost]);
     lvl[n] = l;
     next.push(`<li><button class="cmd" data-copy="$${n.toLowerCase()}">$${n.toLowerCase()}</button> <b>${esc(n)} ${['I', 'II', 'III', 'IV'][l - 1]}</b>` + (cost ? ` · ${fmtK(cost)}` : '')
+      + (next.length ? '' : doneBtn('badge', n, l, cost))
       + (cost && k !== null ? ` <span class="tag ${k >= sum ? 'good' : ''}">${esc(k >= sum ? T('La pots pagar') : T('Et falten {n}', { n: fmtK(sum - k) }))}</span>` : '') + '</li>');
   }
   if (next.length && !M.bp) next.push('<li class="muted">' + esc(T('Enganxa el $k per saber què costen al teu servidor.')) + '</li>');
@@ -1838,7 +1872,7 @@ function millDraw() {
   if (cost != null && k !== null && k >= cost && tw < 100) ready.push(['towerBox', T('Torre'), rec ? '$build ' + rec : T('el pis següent'), cost]);
   html = esc(html);
   if (!ok) html += '<br><span class="tag bad">' + esc(T('Segons el $kt, a la torre {t} tens {n} pisos: marca quins són a la llista', { t: tw + 1, n: here })) + '</span>';
-  if (rec) html += `<br>${esc(T('Recomanat:'))} <button class="cmd" data-copy="$build ${rec}">$build ${rec}</button>`;
+  if (rec) html += `<br>${esc(T('Recomanat:'))} <button class="cmd" data-copy="$build ${rec}">$build ${rec}</button>` + doneBtn('floor', rec, 0, cost);
   if (tw >= 100) html = esc(T('Tens les 100 torres: és el màxim de Mudae. La kakera, als kakeraloots ($kl).'));  // wiki «Kakera Tower/Prices»
   $id('towerNext').innerHTML = html;
   // esferes: els nivells del personatge que has enganxat
@@ -1850,9 +1884,10 @@ function millDraw() {
   });
   // les compres d'esferes recomanades, amb el que costen sumades i si les pots pagar
   const pay = (sum, have = M.sp) => have != null ? ` <span class="tag ${have >= sum ? 'good' : ''}">${esc(have >= sum ? T('La pots pagar') : T('Et falten {n}', { n: fmtK(sum - have) }))}</span>` : '';
-  const buyList = (buys, cmd, desc) => { let sum = 0; const said = new Set(); return buys.map(b => { sum += b.cost;
+  const buyList = (buys, cmd, desc, kind) => { let sum = 0; const said = new Set(); return buys.map((b, i) => { sum += b.cost;
     const d = said.has(b.n) ? '' : desc[b.n]; said.add(b.n);  // la descripció, només el primer cop que surt cada millora
     return `<li><button class="cmd" data-copy="${esc(cmd)}">${esc(cmd)}</button> <b>${esc(T('Millora {n}', { n: b.n }))} · LVL ${b.l}</b> · ${fmtK(b.cost)}` + pay(sum)
+      + (i ? '' : doneBtn(kind, b.n, b.l, b.cost))
       + (d ? `<br><span class="muted" style="font-size:13px">${esc(d)}</span>` : '') + '</li>'; }).join(''); };
   // Què val més la pena (wiki de Mudae, «Ourospheres»): la 10 dona +20 esferes cada dia a cada personatge que la té, encara que no et surti,
   // fins a 100 personatges (després, 8), i es paga en 50 dies. Les 1-9 només funcionen quan et surt el personatge: només als que et surten sovint.
@@ -1885,7 +1920,7 @@ function millDraw() {
     if (budget >= 1000) ready.push(['perkBox', T('Esferes'), '$or ' + name + ' · ' + T('Millora {n}', { n: 10 }), 1000]);
   } else {
     const buys = nextBuys(M.opp.levels, often ? PORD : [10], perkMax, perkCost);
-    perkHtml = buyList(buys, ('$opp ' + M.opp.name).trim(), PDESC);
+    perkHtml = buyList(buys, ('$opp ' + M.opp.name).trim(), PDESC, 'perk');
     if (buys.length && M.sp >= buys[0].cost) ready.push(['perkBox', T('Esferes'), `${M.opp.name} · ${T('Millora {n}', { n: buys[0].n })} · LVL ${buys[0].l}`, buys[0].cost]);
     if (!perkHtml && !often) {  // aquest ja té la 10: la 10, a uns altres, o, si ja la tenen tots, la botiga
       perkHtml = done10 ? li(T('Para de gastar en personatges que no et surten sovint: ara, la botiga d\'esferes ($os).'))
@@ -1925,7 +1960,7 @@ function millDraw() {
   $id('shopNext').innerHTML = (done10 ? li(T('Ara sí: la botiga. Et recomano només les que reforcen millores que ja tens als teus personatges.'))
       : '<li class="muted">' + esc(T('Encara no: abans, la millora 10 als teus personatges (en tens {n} de {t}). Cada 1.000 esferes et donen +20 cada dia, i gairebé tota la botiga només reforça les millores 1-9, que funcionen quan et surt el personatge.', { n: n10, t: goal10 })) + '</li>')
     + (!M.shop ? li(T('Enganxa el $os per veure-hi els nivells'))
-    : buyList(shopBuys, '$os', SDESC) || li(T('Ja tens al màxim les que et serveixen. Les altres reforcen millores que cap personatge teu no té.')));
+    : buyList(shopBuys, '$os', SDESC, 'shop') || li(T('Ja tens al màxim les que et serveixen. Les altres reforcen millores que cap personatge teu no té.')));
   if (done10 && shopBuys.length && M.sp >= shopBuys[0].cost) ready.push(['shopBox', T("Botiga d'esferes"), `${T('Millora {n}', { n: shopBuys[0].n })} · LVL ${shopBuys[0].l}`, shopBuys[0].cost]);
   millAlert(ready);
   if (window.pendDraw) pendDraw();
@@ -1939,10 +1974,26 @@ function millRead(text) {
   if (got.opp && got.opp.name) got.opps = Object.assign({}, M.opps, { [got.opp.name]: got.opp.levels });
   if (got.bonus) got.bonus = mergeBonus(M.bonus, got.bonus);
   if (got.keys) got.keys = mergeBonus(M.keys, got.keys).sort((a, b) => b[1] - a[1]);  // el $mmy= va per pàgines: s'ajunten
+  const now = Date.now(), at = { ...M.at };  // quan has enganxat cada cosa: si fa massa, el tauler t'ho diu
+  for (const [key, here] of [['$kt', got.nf != null || got.ktCost], ['$k', got.b], ['$opp', got.opp], ['$os', got.shop], ['$mmy=', got.keys], ['$bonus', got.bonus]]) if (here) at[key] = now;
+  got.at = at;
   Object.assign(M, got);
   if (got.ktCost && !M.tv && (M.tv = towerGuess(M))) M.nf = towerNext(M).built;
   millSave(); millDraw();
-  return true;
+  return millSummary(got);
+}
+// El que s'ha entès d'un missatge, en una frase (surt sota la casella): així se sap on ha anat cada cosa
+function millSummary(got) {
+  const bits = [];
+  if (got.nf != null || got.ktCost) { const { tw, built, here = built % 12 } = towerNext(M);
+    bits.push(T('$kt: torre {t}, {n} pisos{p}', { t: tw + 1, n: here, p: M.tv ? T(', preu base {v}', { v: fmtK(M.tv) }) : '' })); }
+  if (got.b) bits.push(T('$k: {n} insígnies', { n: Object.values(got.b).filter(v => v > 0).length }));
+  if (got.opp) bits.push(T('$opp: {name}', { name: got.opp.name || '?' }));
+  if (got.shop) bits.push('$os');
+  if (got.keys) bits.push(T('$mmy=: {n} personatges amb claus', { n: got.keys.length }));
+  if (got.bonus) bits.push(T('$bonus: {n} línies', { n: got.bonus.length }));
+  if (!got.b && !got.nf && !got.ktCost) { if (got.k != null) bits.push(T('Kakera: {n}', { n: fmtK(got.k) })); if (got.sp != null) bits.push(T('Esferes: {n}', { n: fmtK(got.sp) })); }
+  return bits.join(' · ') || T('Llegit a Millores');
 }
 document.addEventListener('change', ev => {
   const el = ev.target;
@@ -1975,6 +2026,46 @@ millDraw();
 window.millTu = text => {  // només la kakera i les esferes: la resta del que pugui semblar-hi, no
   const got = readMudae(text, M.tv); if (got.k == null && got.sp == null) return;
   if (got.k != null) M.k = got.k; if (got.sp != null) M.sp = got.sp; millSave(); millDraw();
+};
+"""
+
+
+JS_BACKUP = r"""
+// Còpia de seguretat: el que el tauler recorda al navegador (Millores, rellotge, Pokédex, col·leccions obertes…) en un fitxer. El harem, la wishlist
+// i les sèries ja són al teu ordinador (carpeta dades/): això només cobreix el que viu al navegador, que es perd si l'esborres o en canvies.
+const BK_PREFIX = 'mudae-';
+function backupData() {
+  const data = {};
+  try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith(BK_PREFIX)) data[k] = localStorage.getItem(k); } } catch (e) {}
+  return data;
+}
+// el fitxer ha de ser d'aquest tauler: un objecte amb només claus «mudae-…» i textos
+function backupParse(text) {
+  let j; try { j = JSON.parse(text); } catch (e) { return null; }
+  const d = j && j.mudae === 1 && j.data;
+  if (!d || typeof d !== 'object' || Array.isArray(d)) return null;
+  const out = {};
+  for (const [k, v] of Object.entries(d)) { if (!k.startsWith(BK_PREFIX) || typeof v !== 'string') return null; out[k] = v; }
+  return out;
+}
+const bkMsg = document.getElementById('bkMsg');
+document.getElementById('bkExport').onclick = () => {
+  const data = backupData(), n = Object.keys(data).length;
+  if (!n) { bkMsg.innerHTML = '<span class="tag bad">' + esc(T('No hi ha res per desar')) + '</span>'; return; }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify({ mudae: 1, data })], { type: 'application/json' }));
+  a.download = 'mudae-copia-' + new Date().toISOString().slice(0, 10) + '.json';
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  bkMsg.innerHTML = '<span class="tag good">' + esc(T('Còpia baixada ({n} dades)', { n })) + '</span>';
+};
+document.getElementById('bkImport').onchange = async ev => {
+  const f = ev.target.files[0]; ev.target.value = '';
+  if (!f) return;
+  const data = backupParse(await f.text());
+  if (!data) { bkMsg.innerHTML = '<span class="tag bad">' + esc(T("No ho entenc")) + '</span> ' + esc(T("Aquest fitxer no és una còpia d'aquest tauler.")); return; }
+  if (!confirm(T('Restaures la còpia ({n} dades)? Substitueix el que el tauler recorda ara en aquest navegador.', { n: Object.keys(data).length }))) return;
+  try { Object.entries(data).forEach(([k, v]) => localStorage.setItem(k, v)); } catch (e) { bkMsg.innerHTML = '<span class="tag bad">' + esc(T("No ho puc desar en aquest navegador")) + '</span>'; return; }
+  location.reload();
 };
 """
 
@@ -2121,9 +2212,10 @@ function pasteAll(text, area = tuText, msg = tuMsg) {  // area i msg: la casella
     msg.innerHTML = '<span class="tag good">' + esc(T('Reclam cada {n} min', { n: set.iv })) + '</span>';
     return;
   }
-  if (millRead(text)) {  // $k, $kt, $opp, $os, $mmy= o $bonus
+  const read = millRead(text);  // $k, $kt, $opp, $os, $mmy= o $bonus: diu què ha entès
+  if (read) {
     area.value = '';
-    msg.innerHTML = '<span class="tag good">' + esc(T('Llegit a Millores')) + '</span> ' + (area === tuText ? goTo('mill', T('Millores')) : '');
+    msg.innerHTML = '<span class="tag good">' + esc(T('Llegit a Millores')) + '</span> <span class="muted">' + esc(read) + '</span> ' + (area === tuText ? goTo('mill', T('Millores')) : '');
     return;
   }
   txt.value = text;
@@ -2572,7 +2664,7 @@ def write_dashboard(d, hist):
   <p class="muted" id="kakeraNext" style="margin:0;font-size:13px" hidden></p>
   <ul class="steps">{tower_rows}</ul>
   <p class="muted" style="margin:0;font-size:13px">{T_("Marca els pisos que ja tens de la torre on ets. Cada torre té 12 pisos, un de cada: quan l'acabes, comença la següent, amb els mateixos pisos però amb menys efecte (els de la llista són els de la primera). Cada pis costa més que l'anterior, triïs el que triïs: construeix primer els de dalt. Amb $destroy et torna la kakera.")}
-   <label style="white-space:nowrap">{T_("Torre núm.:")} <input type="number" id="towerNum" min="1" max="100" style="width:64px"></label>
+   <label style="white-space:nowrap">{T_("Torre núm.:")} <input type="text" id="towerNum" inputmode="numeric" style="width:56px"></label>
    <label style="white-space:nowrap">{T_("Preu base ($towervalue):")} <input type="text" id="towerValue" inputmode="numeric" style="width:90px" aria-label="$towervalue"></label></p>
  </section>
 </div>
@@ -2615,6 +2707,12 @@ def write_dashboard(d, hist):
  <textarea id="updText" rows="4" spellcheck="false" aria-label="{T_("Posar al dia")}" placeholder="{T_("Enganxa aquí el missatge sencer que t'ha enviat Mudae per privat")}"></textarea>
  <div class="give-row"><button class="primary" id="updBtn" disabled>{T_("Desar i actualitzar")}</button><span id="updMsg" role="status"></span></div>
 </section>
+<details class="panel fold" id="bk" data-fold="bk">
+ <summary><h2>{T_("Còpia de seguretat")}</h2><span class="muted" style="font-size:13px">{T_("El que el tauler recorda al navegador")}</span></summary>
+ <div class="fold-body"><p class="muted" style="margin:0 0 8px;font-size:13px">{T_("Baixa un fitxer amb el que el tauler recorda en aquest navegador (Millores, rellotge, Pokédex…) per no perdre-ho si l'esborres o canvies de navegador. El harem, la wishlist i les sèries ja són a la carpeta dades/ del teu ordinador.")}</p>
+  <div class="give-row"><button type="button" class="tab" id="bkExport">{T_("Baixar còpia")}</button>
+   <label class="tab" style="cursor:pointer">{T_("Restaurar còpia")}<input type="file" id="bkImport" accept="application/json,.json" hidden></label><span id="bkMsg" role="status"></span></div></div>
+</details>
 <section class="panel" id="ordres"><div class="panel-head"><h2>{T_("Ordres d'ús habitual")}</h2>
  <input type="search" id="ordQ" spellcheck="false" autocomplete="off" aria-label="{T_("Busca una ordre")}" placeholder="{T_("Busca una ordre: wish, kakera, $tu…")}"></div>
  <div class="ogrid">{ordres}</div><p class="muted" id="ordNone" style="margin:0;font-size:14px" hidden>{T_("Cap ordre amb aquest text.")}</p></section>
@@ -2746,6 +2844,7 @@ document.addEventListener('keydown', ev => {{ if (ev.key === 'Escape' && more.op
 
 </script><script>{JS_TODAY}</script>
 <script>{JS_COLL.replace("__DATA__", js(coll))}</script>
+<script>{JS_BACKUP}</script>
 <script>{JS_UPD.replace("__META__", js(read_meta())).replace("__SPECIALS__", js(spec)).replace("__SIZES__", js({x["name"]: x["total"] for x in series})).replace("__HAREM_N__", str(len(d["harem"]))).replace("__SOURCES__", js(sources))}</script>
 <script>{JS_ESP}</script>
 <script>{JS_MILL.replace("__BADGES__", js([[n, p] for n, p, _ in BADGES])).replace("__PLAN__", js(BADGE_PLAN)).replace("__TOWER__", js([n for n, _ in TOWER])).replace("__PORD__", js([n for _, ns in PERK_GROUPS for n in ns])).replace("__SORD__", js(SHOP_ORDER)).replace("__PDESC__", js({n: t(x) for n, x in PERKS.items()})).replace("__SDESC__", js({n: t(x) for n, x in SHOP.items()}))}</script>

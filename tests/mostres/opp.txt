@@ -1,0 +1,13 @@
+Mejora los beneficios del personaje seleccionado.
+Tienes 1.780
+Harry Potter
+[LVL 2] Probabilidad de aparición incrementada: 0 > 15%
+[LVL 0] Valor de kakera base incrementado: 0 > 20
+[LVL 0] Probabilidad de obtener +1 botón de kakera: 0 > 7%
+[LVL 6] Probabilidad de obtener +1 llave: 0 > 4%
+[LVL 0] Cantidad de spheres: 0 > 3
+[LVL 0] a
+[LVL 0] b
+[LVL 0] c
+[LVL 0] d
+[LVL 1] El primer $oh del día genera +20 spheres

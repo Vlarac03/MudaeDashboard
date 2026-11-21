@@ -319,7 +319,10 @@ class Seguretat(unittest.TestCase):
         import urllib.request
         import webbrowser
         webbrowser.open = lambda *a, **k: None
-        port = 8789
+        import socket
+        with socket.socket() as probe:  # un port lliure cada vegada: el del cop anterior queda en TIME_WAIT i el servidor no el reutilitza
+            probe.bind(("127.0.0.1", 0))
+            port = probe.getsockname()[1]
         threading.Thread(target=mudae.serve, kwargs={"port": port}, daemon=True).start()
         base = f"http://127.0.0.1:{port}"
         for _ in range(50):
@@ -340,7 +343,7 @@ class Seguretat(unittest.TestCase):
         self.assertEqual(status("/dades/config.json"), 404)       # les dades no es serveixen
         self.assertEqual(status("/mudae.py"), 404)
         self.assertEqual(status("/"), 404)                        # sense llistat de la carpeta
-        self.assertEqual(status("/ping", host="evil.example:8789"), 403)  # DNS rebinding
+        self.assertEqual(status("/ping", host=f"evil.example:{port}"), 403)  # DNS rebinding
         head = urllib.request.Request(base + "/mudae.py", method="HEAD")  # HEAD no es salta les restriccions del GET
         with self.assertRaises(urllib.error.HTTPError) as cm:
             urllib.request.urlopen(head, timeout=3)

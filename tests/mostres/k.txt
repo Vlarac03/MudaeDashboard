@@ -1,0 +1,10 @@
+¿Cómo coleccionar kakera en el servidor? (Cambie las opciones con $togglekakera)
+Tienes 28.223!
+Convierte tu kakera en insignias de poder:
+ Bronze IV · ¡Máximo alcanzado!
+ Silver IV · ¡Máximo alcanzado!
+ Gold IV · ¡Máximo alcanzado!
+ Sapphire II · 15.000
+ Ruby I · 14.000
+Kakeratower: $kt
+Desbloquea un nivel con $bronze, $silver...

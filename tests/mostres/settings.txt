@@ -1,0 +1,12 @@
+🛠️ Ajustes de Servidor 🛠️
+(Server sin premium)
+
+· Prefijo: $ ($prefix)
+· Idioma: es ($lang)
+· Reinicio de reclamos: Cada 180 min. ($setclaim)
+· Minuto exacto de cada reinicio: xx:02 ($setinterval)
+· Reinicio cambiado: por +0 min. ($shifthour)
+· Rolls por hora: 8 ($setrolls)
+· Tiempo antes de que se expire la reacción para reclamar: 45 sec. ($settimer)
+· Rolls sniping: 2 ($togglesnipe) => 8 sec.
+· Calculación de kakera: Reclamos y ranking de favoritos (y número de personajes reclamados) ($togglekakeraclaim/$togglekakeralike)
