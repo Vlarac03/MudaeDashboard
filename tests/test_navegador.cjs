@@ -45,6 +45,28 @@ const sample = n => fs.readFileSync(path.join(mostres, n + '.txt'), 'utf8');
   M = await millores();
   assert.equal(M.nf, 10); assert.equal(M.k, 22551);
 
+  // 3b. els efectes de la llista són els de la torre on ets: el $kt d'un amic (torre 2) els porta; sense ell, la torre 2 ja és coneguda
+  //     i la 3 avisa que els efectes són menors
+  const floor8 = () => page.evaluate(() => document.querySelector('input[data-floor="8"]').nextElementSibling.textContent);
+  await page.evaluate(() => localStorage.clear()); await open();
+  await paste(sample('kt20pisos'));
+  assert.match(await floor8(), /-2%/);
+  assert.match(await page.textContent('#towerNext'), /\$build 9/); assert.match(await page.textContent('#towerNext'), /500/);  // el que dona el pis recomanat
+  await page.evaluate(() => localStorage.clear()); await open();
+  const setTower = n => page.evaluate(v => { const i = document.getElementById('towerNum'); i.value = v; i.dispatchEvent(new Event('change', { bubbles: true })); }, String(n));
+  await setTower(2); assert.match(await floor8(), /2% less power/);
+  await setTower(3); assert.match(await floor8(), /2% less power/);   // torre 3: de la taula de la wiki, sense haver enganxat res
+  await setTower(5); assert.match(await floor8(), /Red and rainbow kakera give \+250/);
+  await setTower(3);
+  await setTower(1); assert.match(await floor8(), /4% less power/);
+  // un $kt d'una torre que no coneixem (la 3): els seus efectes surten sense haver de fer res, i es recorden en canviar de torre
+  await paste(sample('kt3torre'));
+  assert.match(await page.evaluate(() => document.querySelector('input[data-floor="2"]').nextElementSibling.textContent), /inventat/);
+  assert.doesNotMatch(await page.textContent('#towerNext'), /paste your \$kt to see/);  // ja no avisa: els coneix
+  await setTower(1); await setTower(3);
+  assert.match(await page.evaluate(() => document.querySelector('input[data-floor="2"]').nextElementSibling.textContent), /inventat/);
+  await paste(sample('kt10pisos'));
+
   // 4. dades velles: un $kt de fa 10 dies atenua la targeta i ho diu
   await page.evaluate(() => { const m = JSON.parse(localStorage.getItem('mudae-millores')); m.at = { '$kt': Date.now() - 10 * 864e5 }; localStorage.setItem('mudae-millores', JSON.stringify(m)); });
   await open();

@@ -8,7 +8,9 @@ const js = py.match(/JS_MILL = r"""([\s\S]*?)"""/)[1];
 const BADGES = ['Bronze', 'Silver', 'Gold', 'Sapphire', 'Ruby', 'Emerald', 'Diamond'].map(n => [n, 0]);
 const num = js.match(/const num = [^\n]*/)[0];
 const costs = js.match(/const PCOST[^\n]*\n[^\n]*\n[^\n]*/)[0], lvl = js.match(/const LVL[^\n]*\n[^\n]*/)[0];
-const readMudae = new Function('BADGES', [num, costs, lvl, js.match(/function readMudae[\s\S]*?\n}\n/)[0]].join('\n') + 'return readMudae;')(BADGES);
+const readFull = new Function('BADGES', [num, costs, lvl, js.match(/function readMudae[\s\S]*?\n}\n/)[0]].join('\n') + 'return readMudae;')(BADGES);
+// els efectes de cada pis (fd, fdT) es proven a part; la resta de proves comparen només el que ve darrere
+const readMudae = (t, tv) => { const r = readFull(t, tv); delete r.fd; delete r.fdT; return r; };
 
 const k = sample('k');
 // el preu que surt és el del nivell següent: Sapphire II → el III costa 15.000 (5.000 per nivell, els de sèrie)
@@ -41,6 +43,22 @@ assert.equal(notTu('Tienes 0 rolls.\nPuedes reclamar ahora.'), false);
 const kt10 = sample('kt10pisos');
 assert.deepEqual(readMudae(kt10, null), { ktCost: 55000, tv: 5000, t: 0, f: [1, 2, 4, 5, 6, 7, 8, 9, 10, 11], nf: 10, k: 22551 });
 assert.equal(notTu(kt10), true);  // tampoc no és un $tu: parla de «+1 roll por hora»
+// el $kt d'un amic de Victor (21/11/2026): torre 2 amb 8 pisos; 105.000 = 5.000 × 21, i les 8 marques ho confirmen
+const kt20 = sample('kt20pisos');
+assert.deepEqual(readMudae(kt20, null), { ktCost: 105000, tv: 5000, t: 1, f: [1, 2, 4, 5, 6, 7, 8, 11], nf: 20, k: 11129 });
+assert.equal(notTu(kt20), true);
+// els efectes de cada pis són els de la torre on ets: el $kt del teu amic (torre 2) els porta tots, el teu (torre 1) també
+const fd2 = readFull(kt20, null), fd1 = readFull(kt10, null);
+assert.equal(fd2.fdT, 2); assert.equal(fd1.fdT, 1);
+assert.equal(Object.keys(fd2.fd).length, 12);
+assert.equal(fd2.fd[8], 'Botones de kakera cuestan -2% poder de kakera');   // torre 2: -2 %
+assert.equal(fd1.fd[8], 'Botones de kakera cuestan -4% poder de kakera');   // torre 1: -4 %
+assert.equal(fd2.fd[12], 'Comandos $colorll y $colorsl desbloqueados');
+assert.equal(readFull('El siguiente nivel cuesta 40.000\nTienes 5\nArma un piso usando $build <n>', 5000).fd, undefined);  // sense la llista, no n'hi ha
+// un $kt de la torre 3 (és el de la 2 amb el nombre de torres i el preu canviats, i un efecte inventat): els efectes surten com a de la torre 3
+const kt3 = readFull(sample('kt3torre'), null);
+assert.equal(kt3.t, 2); assert.equal(kt3.nf, 32); assert.equal(kt3.fdT, 3);
+assert.match(kt3.fd[2], /\+10% \(inventat/);
 // els pisos sense fer amb un emoji davant (copiat d'una altra manera): totes les línies semblen marcades, però el preu diu 17
 const ktEmoji = ktFull.replace(/^\[(\d+)\]/gm, '⬛ [$1]');
 assert.deepEqual(readMudae(ktEmoji, 5000), { ktCost: 90000, tv: 5000, nf: 17, k: 29511 });
@@ -118,6 +136,25 @@ assert.deepEqual(bonusFacts(readMudae(noEmoji(clip), 5000).bonus), { pmax: 110, 
 assert.deepEqual(bonusFacts(undefined), { pmax: null, pcost: null, oh: null, rt: null, wl: null });
 assert.deepEqual(readMudae('Hola, això no és de Mudae', 5000), {});
 assert.deepEqual(readMudae('Kakera rewards\nBonus Bronze I + Silver I + Gold I\n$bronze', 5000), {});  // el $kakerareward no són els teus nivells
+// efectes de cada pis per torre, de la taula de la wiki («Kakera Tower/Perks»); T de prova: omple les {variables} del text
+const fill = (k, p = {}) => k.replace(/\{(\w+)\}/g, (_, v) => p[v]);
+const towerFx = new Function('T', js.match(/const STARWISH = [^\n]*/)[0] + '\n' + fn('towerFx') + 'return towerFx;')(fill);
+for (let n = 1; n <= 12; n++) assert.equal(towerFx(n, 1), null);  // la torre 1 és la llista tal qual
+const fx = (n, t) => towerFx(n, t);
+assert.equal(fx(2, 2), 'El teu $starwish surt un 25 % més'); assert.equal(fx(2, 3), 'El teu $starwish surt un 20 % més');
+assert.equal(fx(2, 12), 'El teu $starwish surt un 3 % més'); assert.equal(fx(2, 20), 'El teu $starwish surt un 1 % més');
+assert.equal(fx(3, 2), 'Menys límit de $limroul: 140 $wa, 140 $ha, 70 $wg, 70 $hg');
+assert.equal(fx(1, 5), null); assert.equal(fx(4, 2), null);   // +2 llocs i +10 % de segona clau: igual que a la 1
+assert.match(fx(4, 3), /^\+5 % de segona clau/); assert.match(fx(4, 22), /^\+5 % de segona clau/); assert.match(fx(4, 23), /tercera clau/);
+assert.equal(fx(5, 2), 'El $oh et destapa 1 botó'); assert.equal(fx(5, 8), 'El $oh et destapa 1 botó'); assert.match(fx(5, 9), /^\+0,5 % de doblar/);
+assert.equal(fx(6, 2), '+30 esferes amb el $dk'); assert.match(fx(6, 3), /Bronze IV$/); assert.match(fx(6, 4), /\$rolls$/);
+assert.match(fx(6, 5), /\+2 esferes més/); assert.match(fx(6, 9), /\+2 esferes més/); assert.match(fx(6, 10), /\+1 esferes més/);
+assert.equal(fx(7, 2), 'Poder màxim base de kakera: +5 %'); assert.equal(fx(7, 75), 'Poder màxim base de kakera: +5 %'); assert.equal(fx(7, 76), 'Poder màxim base de kakera: +1 %');
+assert.equal(fx(8, 2), 'Clicar kakera gasta un 2 % menys de poder'); assert.equal(fx(8, 4), 'Clicar kakera gasta un 2 % menys de poder'); assert.match(fx(8, 5), /^La kakera vermella/);
+assert.equal(fx(9, 11), null); assert.match(fx(9, 12), /^\+100 de kakera/); assert.match(fx(9, 21), /^\+100 de kakera/); assert.match(fx(9, 22), /^\+50 de kakera/);
+assert.equal(fx(10, 10), null); assert.match(fx(10, 11), /raresa/);
+assert.equal(fx(11, 10), null); assert.match(fx(11, 11), /^\+30 %/); assert.match(fx(11, 30), /^\+30 %/); assert.match(fx(11, 31), /^\+40 %/); assert.match(fx(11, 51), /^\+50 %/);
+assert.equal(fx(12, 2), 'Desbloqueja $colorll i $colorsl'); assert.match(fx(12, 3), /\+165 de kakera/); assert.match(fx(12, 10), /\+165 de kakera/); assert.match(fx(12, 11), /\+3 de kakera/);
 // torre: 12 pisos per torre; el $kt diu el total i d'aquí surt la torre on ets
 const TOWER = [11, 8, 7, 6, 5, 1, 4, 2, 9, 10, 3, 12];
 const [towerNext, towerFromKt] = new Function('TOWER', js.match(/const X10_FROM = [^\n]*/)[0] + '\n' + fn('towerNext') + fn('towerFromKt').replace(/\n$/, '') + '\nreturn [towerNext, towerFromKt];')(TOWER);

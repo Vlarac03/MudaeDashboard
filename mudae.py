@@ -1675,6 +1675,8 @@ function readMudae(text, tv) {
     const step = text.match(/\+\s*(\d[\d.,]*)[^)\n]*\$towervalue/i), tw = text.match(/\(\s*\+\s*(\d+)\s*(?:torres?|towers?|tours?|torri|türme?)\b/i);
     const done = [...new Set([...text.matchAll(/^[ \t]*[^\s\[][^\[\n]*\[(\d{1,2})\]/gm)].map(m => +m[1]).filter(n => n >= 1 && n <= 12))];
     if (step) out.tv = num(step[1]);
+    const fd = {};  // el text exacte de cada pis: els efectes són els de la torre on ets (menors a les següents)
+    for (const m of text.matchAll(/^[ \t]*[^\s\[]*[ \t]*\[(\d{1,2})\][ \t]*(\S.*?)\s*$/gm)) if (+m[1] >= 1 && +m[1] <= 12) fd[+m[1]] = m[2];
     // pel preu: el pis que toca és preu / preu base. De la torre 77 a la 100 (pisos 913-1.200) costa x10 (wiki): surt més de 1.200
     const base = out.tv || tv, raw = cost && base ? Math.round(out.ktCost / base) : 0;
     const byPrice = raw ? Math.max(0, (raw > 1200 ? Math.round(raw / 10) : raw) - 1) : null;
@@ -1686,6 +1688,7 @@ function readMudae(text, tv) {
       if (byPrice != null && t * 12 + f.length !== byPrice) { t = Math.floor(byPrice / 12); f = f.length === byPrice % 12 ? f : null; }
       if (f) { out.t = t; out.f = f; out.nf = t * 12 + f.length; } else out.nf = byPrice;
     } else if (byPrice != null) out.nf = byPrice;  // sense marques: només pel preu
+    if (Object.keys(fd).length >= 12 && out.nf != null && done.length < 12) { out.fd = fd; out.fdT = Math.floor(out.nf / 12) + 1; }  // fdT: número de la torre (1 és la primera)
     if (have) out.k = num(have[1]);
   } else if (/\$bronze/i.test(text) && !/rewards/i.test(text)) {
     out.b = {};
@@ -1714,6 +1717,27 @@ function bonusFacts(B) {
   const get = (label, value) => { const r = (B || []).find(([l]) => label.test(l)), m = r && r[1].match(value); return m ? +m[1] : null; };
   return { pmax: get(/m[aá]x.*kakera|kakera.*m[aá]x/i, /(\d+)\s*%/), pcost: get(/(?:cost|coût).*kakera/i, /(\d+)\s*%/),
     oh: get(/\$oh\b/i, /\+\s*(\d+)/), rt: get(/\$rt\b/i, /(\d+)\s*h/), wl: get(/(?:espacio|slot).*(?:lista de deseos|wishlist)|wishlist.*slot/i, /\+\s*(\d+)/) };
+}
+// Efectes de cada pis a la torre `t` (1 és la primera), de la wiki de Mudae («Kakera Tower/Perks»); null: com a la llista (la torre 1).
+// El que surt del $kt enganxat mana sobre això. Les torres de la 2 a la 100 canvien molts pisos: la 2 és igual a la del $kt d'un amic.
+const STARWISH = [50, 25, 20, 16, 13, 10, 8, 6, 5, 4, 3, 3, 2, 2, 2, 1, 1, 1, 1, 1];  // la wiki dona fins a la torre 20; després, +1 %
+function towerFx(n, t) {
+  if (t === 1) return null;
+  switch (n) {
+    case 2: return T('El teu $starwish surt un {p} % més', { p: STARWISH[t - 1] || 1 });
+    case 3: return T('Menys límit de $limroul: {a} $wa, {a} $ha, {g} $wg, {g} $hg', { a: 140, g: 70 });
+    case 4: return t === 2 ? null : t <= 22 ? T('+{p} % de segona clau si el personatge és a la wishlist', { p: 5 }) : T('+1 % de tercera clau si el personatge és a la wishlist');
+    case 5: return t <= 8 ? T('El $oh et destapa 1 botó') : T("+0,5 % de doblar les esferes d'un botó d'esferes del $oh");
+    case 6: return t === 2 ? T('+30 esferes amb el $dk') : t === 3 ? T('+20 esferes amb la insígnia Bronze IV') : t === 4 ? T('+10 esferes amb el $rolls')
+      : T('Reclamar, el $dk, el Bronze IV i el $rolls donen +{n} esferes més', { n: t <= 9 ? 2 : 1 });
+    case 7: return T('Poder màxim base de kakera: +{p} %', { p: t <= 75 ? 5 : 1 });
+    case 8: return t <= 4 ? T('Clicar kakera gasta un 2 % menys de poder') : T('La kakera vermella i la arc de Sant Martí donen +250 de kakera després dels altres bonus');
+    case 9: return t <= 11 ? null : T('+{n} de kakera cada 3 h a les claus daurades ($bku)', { n: t <= 21 ? 100 : 50 });
+    case 10: return t <= 10 ? null : T('-1 % de raresa a cada premi de la kakera del caos');
+    case 11: return t <= 10 ? null : T('+{p} % de kakera de les insígnies Bronze IV i Silver IV', { p: t <= 30 ? 30 : t <= 50 ? 40 : 50 });
+    case 12: return t === 2 ? T('Desbloqueja $colorll i $colorsl') : T('La kakera del caos dona +{n} de kakera abans dels altres bonus', { n: t <= 10 ? 165 : 3 });
+  }
+  return null;  // el 1: +2 llocs a la wishlist a totes
 }
 // Cada torre té 12 pisos, un de cada; la següent s'obre en acabar-la, amb els mateixos pisos però amb menys efecte (wiki de Mudae)
 // built: els pisos que tens en total (els del $kt o els que has marcat); tw: les torres acabades; ok: si les marques hi quadren.
@@ -1858,7 +1882,7 @@ function millDraw() {
   // el consell de la kakera passa a la torre, que és on va ara. Si no, sempre oberta i sense recordar res (sense data-fold).
   const allMax = !next.length, bx = $id('badgeBox');
   $id('badgeMax').hidden = !allMax; $id('kakeraNext').hidden = !allMax;
-  $id('kakeraNext').textContent = T("Ara, la kakera: primer acaba la torre 1 (cada pis és un bonus nou) i després els kakeraloots ($kl), que donen tirades, llocs de wishlist i menys espera del $rt i no s'acaben mai. Si n'obres molts, puja el $quantity: cada nivell, +1 % de doblar el que surt.");
+  $id('kakeraNext').textContent = T("Ara, la kakera: primer acaba la torre {t} (cada pis és un bonus nou) i després els kakeraloots ($kl), que donen tirades, llocs de wishlist i menys espera del $rt i no s'acaben mai. Si n'obres molts, puja el $quantity: cada nivell, +1 % de doblar el que surt.", { t: towerNext(M).tw + 1 });
   if (allMax) {
     $id('millG2').append($id('perkBox')); $id('v-mill').append(bx);
     if (bx.dataset.fold !== 'badges-max') { bx.dataset.fold = 'badges-max'; bx.open = foldOpen('badges-max'); }
@@ -1868,13 +1892,20 @@ function millDraw() {
   $id('towerValue').value = M.tv ?? '';
   const { tw, built, ok, cost, rec } = towerNext(M), here = built - tw * 12;
   $id('towerNum').value = Math.min(100, tw + 1);
+  // els efectes de la torre on ets: els del $kt que has enganxat o, si no, els de la wiki (la llista de baix és la de la torre 1)
+  const tn = Math.min(100, tw + 1), seen = (M.fdAll || {})[tn] || {}, fxOf = n => seen[n] || towerFx(n, tn);
+  document.querySelectorAll('input[data-floor]').forEach(inp => {
+    const sp = inp.nextElementSibling, n = +inp.dataset.floor; sp.dataset.def ||= sp.textContent;
+    sp.textContent = fxOf(n) ? `[${n}] ${fxOf(n)}` : sp.dataset.def;
+  });
   let html = cost == null ? T('Torre {t} · pisos {n}/12 · per saber què costa el següent, marca els pisos que tens i enganxa el $kt (o escriu el preu base)', { t: tw + 1, n: here })
     : T('Torre {t} · pisos {n}/12 · el següent costa {c}', { t: tw + 1, n: here, c: fmtK(cost) });
   if (cost != null && k !== null) html += ' · ' + (k >= cost ? T('el pots pagar') : T('et falten {n}', { n: fmtK(cost - k) }));
   if (cost != null && k !== null && k >= cost && tw < 100) ready.push(['towerBox', T('Torre'), rec ? '$build ' + rec : T('el pis següent'), cost]);
   html = esc(html);
   if (!ok) html += '<br><span class="tag bad">' + esc(T('Segons el $kt, a la torre {t} tens {n} pisos: marca quins són a la llista', { t: tw + 1, n: here })) + '</span>';
-  if (rec) html += `<br>${esc(T('Recomanat:'))} <button class="cmd" data-copy="$build ${rec}">$build ${rec}</button>` + doneBtn('floor', rec, 0, cost);
+  if (rec) html += `<br>${esc(T('Recomanat:'))} <button class="cmd" data-copy="$build ${rec}">$build ${rec}</button>` + doneBtn('floor', rec, 0, cost)
+    + (fxOf(rec) ? `<br><span class="muted" style="font-size:13px">${esc(fxOf(rec))}</span>` : '');
   if (tw >= 100) html = esc(T('Tens les 100 torres: és el màxim de Mudae. La kakera, als kakeraloots ($kl).'));  // wiki «Kakera Tower/Prices»
   $id('towerNext').innerHTML = html;
   // esferes: els nivells del personatge que has enganxat
@@ -1979,6 +2010,7 @@ function millRead(text) {
   const now = Date.now(), at = { ...M.at };  // quan has enganxat cada cosa: si fa massa, el tauler t'ho diu
   for (const [key, here] of [['$kt', got.nf != null || got.ktCost], ['$k', got.b], ['$opp', got.opp], ['$os', got.shop], ['$mmy=', got.keys], ['$bonus', got.bonus]]) if (here) at[key] = now;
   got.at = at;
+  if (got.fd) { got.fdAll = { ...M.fdAll, [got.fdT]: got.fd }; delete got.fd; delete got.fdT; }  // els efectes d'aquesta torre, per no perdre'ls en passar a una altra
   Object.assign(M, got);
   if (got.ktCost && !M.tv && (M.tv = towerGuess(M))) M.nf = towerNext(M).built;
   millSave(); millDraw();
@@ -2665,7 +2697,7 @@ def write_dashboard(d, hist):
   <p class="clock" id="towerNext" style="margin:0"></p>
   <p class="muted" id="kakeraNext" style="margin:0;font-size:13px" hidden></p>
   <ul class="steps">{tower_rows}</ul>
-  <p class="muted" style="margin:0;font-size:13px">{T_("Marca els pisos que ja tens de la torre on ets. Cada torre té 12 pisos, un de cada: quan l'acabes, comença la següent, amb els mateixos pisos però amb menys efecte (els de la llista són els de la primera). Cada pis costa més que l'anterior, triïs el que triïs: construeix primer els de dalt. Amb $destroy et torna la kakera.")}
+  <p class="muted" style="margin:0;font-size:13px">{T_("Marca els pisos que ja tens de la torre on ets. Cada torre té 12 pisos, un de cada: quan l'acabes, comença la següent, amb els mateixos pisos però amb menys efecte (la llista mostra els efectes de la torre on ets). Cada pis costa més que l'anterior, triïs el que triïs: construeix primer els de dalt. Amb $destroy et torna la kakera.")}
    <label style="white-space:nowrap">{T_("Torre núm.:")} <input type="text" id="towerNum" inputmode="numeric" style="width:56px"></label>
    <label style="white-space:nowrap">{T_("Preu base ($towervalue):")} <input type="text" id="towerValue" inputmode="numeric" style="width:90px" aria-label="$towervalue"></label></p>
  </section>
