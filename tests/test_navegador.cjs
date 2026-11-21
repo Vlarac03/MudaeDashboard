@@ -55,7 +55,9 @@ const sample = n => fs.readFileSync(path.join(mostres, n + '.txt'), 'utf8');
   await page.evaluate(() => localStorage.clear()); await open();
   const setTower = n => page.evaluate(v => { const i = document.getElementById('towerNum'); i.value = v; i.dispatchEvent(new Event('change', { bubbles: true })); }, String(n));
   await setTower(2); assert.match(await floor8(), /2% less power/);
-  await setTower(3); assert.match(await page.textContent('#towerNext'), /tower 1's; in tower 3 they are weaker/);
+  await setTower(3); assert.match(await floor8(), /2% less power/);   // torre 3: de la taula de la wiki, sense haver enganxat res
+  await setTower(5); assert.match(await floor8(), /Red and rainbow kakera give \+250/);
+  await setTower(3);
   await setTower(1); assert.match(await floor8(), /4% less power/);
   // un $kt d'una torre que no coneixem (la 3): els seus efectes surten sense haver de fer res, i es recorden en canviar de torre
   await paste(sample('kt3torre'));

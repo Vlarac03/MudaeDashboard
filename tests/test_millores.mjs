@@ -136,6 +136,25 @@ assert.deepEqual(bonusFacts(readMudae(noEmoji(clip), 5000).bonus), { pmax: 110, 
 assert.deepEqual(bonusFacts(undefined), { pmax: null, pcost: null, oh: null, rt: null, wl: null });
 assert.deepEqual(readMudae('Hola, això no és de Mudae', 5000), {});
 assert.deepEqual(readMudae('Kakera rewards\nBonus Bronze I + Silver I + Gold I\n$bronze', 5000), {});  // el $kakerareward no són els teus nivells
+// efectes de cada pis per torre, de la taula de la wiki («Kakera Tower/Perks»); T de prova: omple les {variables} del text
+const fill = (k, p = {}) => k.replace(/\{(\w+)\}/g, (_, v) => p[v]);
+const towerFx = new Function('T', js.match(/const STARWISH = [^\n]*/)[0] + '\n' + fn('towerFx') + 'return towerFx;')(fill);
+for (let n = 1; n <= 12; n++) assert.equal(towerFx(n, 1), null);  // la torre 1 és la llista tal qual
+const fx = (n, t) => towerFx(n, t);
+assert.equal(fx(2, 2), 'El teu $starwish surt un 25 % més'); assert.equal(fx(2, 3), 'El teu $starwish surt un 20 % més');
+assert.equal(fx(2, 12), 'El teu $starwish surt un 3 % més'); assert.equal(fx(2, 20), 'El teu $starwish surt un 1 % més');
+assert.equal(fx(3, 2), 'Menys límit de $limroul: 140 $wa, 140 $ha, 70 $wg, 70 $hg');
+assert.equal(fx(1, 5), null); assert.equal(fx(4, 2), null);   // +2 llocs i +10 % de segona clau: igual que a la 1
+assert.match(fx(4, 3), /^\+5 % de segona clau/); assert.match(fx(4, 22), /^\+5 % de segona clau/); assert.match(fx(4, 23), /tercera clau/);
+assert.equal(fx(5, 2), 'El $oh et destapa 1 botó'); assert.equal(fx(5, 8), 'El $oh et destapa 1 botó'); assert.match(fx(5, 9), /^\+0,5 % de doblar/);
+assert.equal(fx(6, 2), '+30 esferes amb el $dk'); assert.match(fx(6, 3), /Bronze IV$/); assert.match(fx(6, 4), /\$rolls$/);
+assert.match(fx(6, 5), /\+2 esferes més/); assert.match(fx(6, 9), /\+2 esferes més/); assert.match(fx(6, 10), /\+1 esferes més/);
+assert.equal(fx(7, 2), 'Poder màxim base de kakera: +5 %'); assert.equal(fx(7, 75), 'Poder màxim base de kakera: +5 %'); assert.equal(fx(7, 76), 'Poder màxim base de kakera: +1 %');
+assert.equal(fx(8, 2), 'Clicar kakera gasta un 2 % menys de poder'); assert.equal(fx(8, 4), 'Clicar kakera gasta un 2 % menys de poder'); assert.match(fx(8, 5), /^La kakera vermella/);
+assert.equal(fx(9, 11), null); assert.match(fx(9, 12), /^\+100 de kakera/); assert.match(fx(9, 21), /^\+100 de kakera/); assert.match(fx(9, 22), /^\+50 de kakera/);
+assert.equal(fx(10, 10), null); assert.match(fx(10, 11), /raresa/);
+assert.equal(fx(11, 10), null); assert.match(fx(11, 11), /^\+30 %/); assert.match(fx(11, 30), /^\+30 %/); assert.match(fx(11, 31), /^\+40 %/); assert.match(fx(11, 51), /^\+50 %/);
+assert.equal(fx(12, 2), 'Desbloqueja $colorll i $colorsl'); assert.match(fx(12, 3), /\+165 de kakera/); assert.match(fx(12, 10), /\+165 de kakera/); assert.match(fx(12, 11), /\+3 de kakera/);
 // torre: 12 pisos per torre; el $kt diu el total i d'aquí surt la torre on ets
 const TOWER = [11, 8, 7, 6, 5, 1, 4, 2, 9, 10, 3, 12];
 const [towerNext, towerFromKt] = new Function('TOWER', js.match(/const X10_FROM = [^\n]*/)[0] + '\n' + fn('towerNext') + fn('towerFromKt').replace(/\n$/, '') + '\nreturn [towerNext, towerFromKt];')(TOWER);
