@@ -41,6 +41,10 @@ assert.equal(notTu('Tienes 0 rolls.\nPuedes reclamar ahora.'), false);
 const kt10 = sample('kt10pisos');
 assert.deepEqual(readMudae(kt10, null), { ktCost: 55000, tv: 5000, t: 0, f: [1, 2, 4, 5, 6, 7, 8, 9, 10, 11], nf: 10, k: 22551 });
 assert.equal(notTu(kt10), true);  // tampoc no és un $tu: parla de «+1 roll por hora»
+// el $kt d'un amic de Victor (21/11/2026): torre 2 amb 8 pisos; 105.000 = 5.000 × 21, i les 8 marques ho confirmen
+const kt20 = sample('kt20pisos');
+assert.deepEqual(readMudae(kt20, null), { ktCost: 105000, tv: 5000, t: 1, f: [1, 2, 4, 5, 6, 7, 8, 11], nf: 20, k: 11129 });
+assert.equal(notTu(kt20), true);
 // els pisos sense fer amb un emoji davant (copiat d'una altra manera): totes les línies semblen marcades, però el preu diu 17
 const ktEmoji = ktFull.replace(/^\[(\d+)\]/gm, '⬛ [$1]');
 assert.deepEqual(readMudae(ktEmoji, 5000), { ktCost: 90000, tv: 5000, nf: 17, k: 29511 });
