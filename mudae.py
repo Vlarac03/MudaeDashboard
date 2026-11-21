@@ -2718,6 +2718,7 @@ def write_dashboard(d, hist):
 </div>
 <section class="panel" id="perkBox"><div class="panel-head"><h2>{T_("Esferes")}</h2><span class="muted" id="perkWho" style="font-size:13px"></span></div>
  <h3 class="og-h">{T_("Les següents que et recomano")}</h3>
+ <p class="muted" style="margin:0 0 8px;font-size:13px">{T_("La 10, a qualsevol personatge que guardis (fins a 100). Les 1-9, només als que et surten més: només actuen quan surt el personatge.")}</p>
  <label class="give-row" style="margin:0 0 8px">{T_("La millora 10, per on començo:")} <select id="perkOrd"><option value="">{T_("Els que tenen més claus")}</option></select></label>
  <ul class="steps" id="perkNext"></ul>
  <div class="g2">
