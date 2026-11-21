@@ -8,7 +8,9 @@ const js = py.match(/JS_MILL = r"""([\s\S]*?)"""/)[1];
 const BADGES = ['Bronze', 'Silver', 'Gold', 'Sapphire', 'Ruby', 'Emerald', 'Diamond'].map(n => [n, 0]);
 const num = js.match(/const num = [^\n]*/)[0];
 const costs = js.match(/const PCOST[^\n]*\n[^\n]*\n[^\n]*/)[0], lvl = js.match(/const LVL[^\n]*\n[^\n]*/)[0];
-const readMudae = new Function('BADGES', [num, costs, lvl, js.match(/function readMudae[\s\S]*?\n}\n/)[0]].join('\n') + 'return readMudae;')(BADGES);
+const readFull = new Function('BADGES', [num, costs, lvl, js.match(/function readMudae[\s\S]*?\n}\n/)[0]].join('\n') + 'return readMudae;')(BADGES);
+// els efectes de cada pis (fd, fdT) es proven a part; la resta de proves comparen només el que ve darrere
+const readMudae = (t, tv) => { const r = readFull(t, tv); delete r.fd; delete r.fdT; return r; };
 
 const k = sample('k');
 // el preu que surt és el del nivell següent: Sapphire II → el III costa 15.000 (5.000 per nivell, els de sèrie)
@@ -45,6 +47,14 @@ assert.equal(notTu(kt10), true);  // tampoc no és un $tu: parla de «+1 roll po
 const kt20 = sample('kt20pisos');
 assert.deepEqual(readMudae(kt20, null), { ktCost: 105000, tv: 5000, t: 1, f: [1, 2, 4, 5, 6, 7, 8, 11], nf: 20, k: 11129 });
 assert.equal(notTu(kt20), true);
+// els efectes de cada pis són els de la torre on ets: el $kt del teu amic (torre 2) els porta tots, el teu (torre 1) també
+const fd2 = readFull(kt20, null), fd1 = readFull(kt10, null);
+assert.equal(fd2.fdT, 2); assert.equal(fd1.fdT, 1);
+assert.equal(Object.keys(fd2.fd).length, 12);
+assert.equal(fd2.fd[8], 'Botones de kakera cuestan -2% poder de kakera');   // torre 2: -2 %
+assert.equal(fd1.fd[8], 'Botones de kakera cuestan -4% poder de kakera');   // torre 1: -4 %
+assert.equal(fd2.fd[12], 'Comandos $colorll y $colorsl desbloqueados');
+assert.equal(readFull('El siguiente nivel cuesta 40.000\nTienes 5\nArma un piso usando $build <n>', 5000).fd, undefined);  // sense la llista, no n'hi ha
 // els pisos sense fer amb un emoji davant (copiat d'una altra manera): totes les línies semblen marcades, però el preu diu 17
 const ktEmoji = ktFull.replace(/^\[(\d+)\]/gm, '⬛ [$1]');
 assert.deepEqual(readMudae(ktEmoji, 5000), { ktCost: 90000, tv: 5000, nf: 17, k: 29511 });

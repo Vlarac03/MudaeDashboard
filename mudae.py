@@ -1266,6 +1266,8 @@ TOWER = [(8, "Clicar kakera gasta un 4 % menys de poder"), (7, "Poder màxim de 
          (4, "+10 % de segona clau si el personatge és a la wishlist"), (2, "El teu $starwish surt un 50 % més"),
          (9, "+500 de kakera cada 3 h a les claus daurades ($bku)"), (10, "La kakera de llum dona +1 kakera"),
          (3, "Menys límit de $limroul (depèn del servidor)"), (12, "Colors per al $mm i el $profile")]
+# Efectes que canvien a les torres següents (la resta de pisos, com a la 1). Només la 2 és segura (del $kt d'un amic); les altres surten del $kt que enganxis.
+TOWER_FX = {2: {2: "El teu $starwish surt un 25 % més", 3: "Menys límit de $limroul: 100 $wa, 100 $ha, 70 $wg, 70 $hg", 5: "El $oh et destapa 1 botó", 6: "+30 esferes amb el $dk", 7: "Poder màxim base de kakera: +5 %", 8: "Clicar kakera gasta un 2 % menys de poder", 12: "Desbloqueja $colorll i $colorsl"}}
 # Millores d'esferes d'un personatge ($opp), pel número que té a Mudae, agrupades de més a menys recomanades
 PERKS = {1: "Més probabilitat que surtin els personatges del costat a la teva wishlist", 2: "+20 de kakera base",
          3: "Probabilitat de +1 botó de kakera", 4: "Probabilitat de +1 clau",
@@ -1636,7 +1638,7 @@ syncUpd();
 
 JS_MILL = r"""
 // Pestanya «Millores»: llegeix el que enganxes de Mudae ($k, $kt, $opp) i recomana el següent pas. Es guarda al navegador.
-const BADGES = __BADGES__, PLAN = __PLAN__, TOWER = __TOWER__, PORD = __PORD__, SORD = __SORD__, PDESC = __PDESC__, SDESC = __SDESC__;
+const BADGES = __BADGES__, PLAN = __PLAN__, TOWER = __TOWER__, TOWERFX = __TOWERFX__, PORD = __PORD__, SORD = __SORD__, PDESC = __PDESC__, SDESC = __SDESC__;
 // Esferes: les millores 1-5 d'un personatge tenen 6 nivells, les 6-10 un (wiki, «Perks / Level»); la botiga ($os), 10 nivells de +4.000
 const PCOST = [200, 400, 600, 800, 1000, 2000];
 const perkMax = n => n <= 5 ? 6 : 1, perkCost = (n, l) => n <= 5 ? PCOST[l] : 1000;
@@ -1675,6 +1677,8 @@ function readMudae(text, tv) {
     const step = text.match(/\+\s*(\d[\d.,]*)[^)\n]*\$towervalue/i), tw = text.match(/\(\s*\+\s*(\d+)\s*(?:torres?|towers?|tours?|torri|türme?)\b/i);
     const done = [...new Set([...text.matchAll(/^[ \t]*[^\s\[][^\[\n]*\[(\d{1,2})\]/gm)].map(m => +m[1]).filter(n => n >= 1 && n <= 12))];
     if (step) out.tv = num(step[1]);
+    const fd = {};  // el text exacte de cada pis: els efectes són els de la torre on ets (menors a les següents)
+    for (const m of text.matchAll(/^[ \t]*[^\s\[]*[ \t]*\[(\d{1,2})\][ \t]*(\S.*?)\s*$/gm)) if (+m[1] >= 1 && +m[1] <= 12) fd[+m[1]] = m[2];
     // pel preu: el pis que toca és preu / preu base. De la torre 77 a la 100 (pisos 913-1.200) costa x10 (wiki): surt més de 1.200
     const base = out.tv || tv, raw = cost && base ? Math.round(out.ktCost / base) : 0;
     const byPrice = raw ? Math.max(0, (raw > 1200 ? Math.round(raw / 10) : raw) - 1) : null;
@@ -1686,6 +1690,7 @@ function readMudae(text, tv) {
       if (byPrice != null && t * 12 + f.length !== byPrice) { t = Math.floor(byPrice / 12); f = f.length === byPrice % 12 ? f : null; }
       if (f) { out.t = t; out.f = f; out.nf = t * 12 + f.length; } else out.nf = byPrice;
     } else if (byPrice != null) out.nf = byPrice;  // sense marques: només pel preu
+    if (Object.keys(fd).length >= 12 && out.nf != null && done.length < 12) { out.fd = fd; out.fdT = Math.floor(out.nf / 12) + 1; }  // fdT: número de la torre (1 és la primera)
     if (have) out.k = num(have[1]);
   } else if (/\$bronze/i.test(text) && !/rewards/i.test(text)) {
     out.b = {};
@@ -1858,7 +1863,7 @@ function millDraw() {
   // el consell de la kakera passa a la torre, que és on va ara. Si no, sempre oberta i sense recordar res (sense data-fold).
   const allMax = !next.length, bx = $id('badgeBox');
   $id('badgeMax').hidden = !allMax; $id('kakeraNext').hidden = !allMax;
-  $id('kakeraNext').textContent = T("Ara, la kakera: primer acaba la torre 1 (cada pis és un bonus nou) i després els kakeraloots ($kl), que donen tirades, llocs de wishlist i menys espera del $rt i no s'acaben mai. Si n'obres molts, puja el $quantity: cada nivell, +1 % de doblar el que surt.");
+  $id('kakeraNext').textContent = T("Ara, la kakera: primer acaba la torre {t} (cada pis és un bonus nou) i després els kakeraloots ($kl), que donen tirades, llocs de wishlist i menys espera del $rt i no s'acaben mai. Si n'obres molts, puja el $quantity: cada nivell, +1 % de doblar el que surt.", { t: towerNext(M).tw + 1 });
   if (allMax) {
     $id('millG2').append($id('perkBox')); $id('v-mill').append(bx);
     if (bx.dataset.fold !== 'badges-max') { bx.dataset.fold = 'badges-max'; bx.open = foldOpen('badges-max'); }
@@ -1868,13 +1873,22 @@ function millDraw() {
   $id('towerValue').value = M.tv ?? '';
   const { tw, built, ok, cost, rec } = towerNext(M), here = built - tw * 12;
   $id('towerNum').value = Math.min(100, tw + 1);
+  // els efectes de la torre on ets: els que has enganxat ($kt), els que sabem o, si no, els de la primera (amb un avís)
+  const tn = Math.min(100, tw + 1), seen = (M.fdAll || {})[tn] || {}, fx = TOWERFX[tn] || {}, fxOf = n => seen[n] || fx[n] || null;
+  document.querySelectorAll('input[data-floor]').forEach(inp => {
+    const sp = inp.nextElementSibling, n = +inp.dataset.floor; sp.dataset.def ||= sp.textContent;
+    sp.textContent = fxOf(n) ? `[${n}] ${fxOf(n)}` : sp.dataset.def;
+  });
+  const firstOnly = tn > 1 && !Object.keys(seen).length && !Object.keys(fx).length;  // d'aquesta torre no sabem res: la llista és de la 1
   let html = cost == null ? T('Torre {t} · pisos {n}/12 · per saber què costa el següent, marca els pisos que tens i enganxa el $kt (o escriu el preu base)', { t: tw + 1, n: here })
     : T('Torre {t} · pisos {n}/12 · el següent costa {c}', { t: tw + 1, n: here, c: fmtK(cost) });
   if (cost != null && k !== null) html += ' · ' + (k >= cost ? T('el pots pagar') : T('et falten {n}', { n: fmtK(cost - k) }));
   if (cost != null && k !== null && k >= cost && tw < 100) ready.push(['towerBox', T('Torre'), rec ? '$build ' + rec : T('el pis següent'), cost]);
   html = esc(html);
   if (!ok) html += '<br><span class="tag bad">' + esc(T('Segons el $kt, a la torre {t} tens {n} pisos: marca quins són a la llista', { t: tw + 1, n: here })) + '</span>';
-  if (rec) html += `<br>${esc(T('Recomanat:'))} <button class="cmd" data-copy="$build ${rec}">$build ${rec}</button>` + doneBtn('floor', rec, 0, cost);
+  if (rec) html += `<br>${esc(T('Recomanat:'))} <button class="cmd" data-copy="$build ${rec}">$build ${rec}</button>` + doneBtn('floor', rec, 0, cost)
+    + (fxOf(rec) ? `<br><span class="muted" style="font-size:13px">${esc(fxOf(rec))}</span>` : '');
+  if (firstOnly) html += '<br><span class="muted" style="font-size:13px">' + esc(T("Els efectes de la llista són els de la torre 1; a la torre {t} són menors: enganxa el $kt per veure'ls.", { t: tn })) + '</span>';
   if (tw >= 100) html = esc(T('Tens les 100 torres: és el màxim de Mudae. La kakera, als kakeraloots ($kl).'));  // wiki «Kakera Tower/Prices»
   $id('towerNext').innerHTML = html;
   // esferes: els nivells del personatge que has enganxat
@@ -1979,6 +1993,7 @@ function millRead(text) {
   const now = Date.now(), at = { ...M.at };  // quan has enganxat cada cosa: si fa massa, el tauler t'ho diu
   for (const [key, here] of [['$kt', got.nf != null || got.ktCost], ['$k', got.b], ['$opp', got.opp], ['$os', got.shop], ['$mmy=', got.keys], ['$bonus', got.bonus]]) if (here) at[key] = now;
   got.at = at;
+  if (got.fd) { got.fdAll = { ...M.fdAll, [got.fdT]: got.fd }; delete got.fd; delete got.fdT; }  // els efectes d'aquesta torre, per no perdre'ls en passar a una altra
   Object.assign(M, got);
   if (got.ktCost && !M.tv && (M.tv = towerGuess(M))) M.nf = towerNext(M).built;
   millSave(); millDraw();
@@ -2665,7 +2680,7 @@ def write_dashboard(d, hist):
   <p class="clock" id="towerNext" style="margin:0"></p>
   <p class="muted" id="kakeraNext" style="margin:0;font-size:13px" hidden></p>
   <ul class="steps">{tower_rows}</ul>
-  <p class="muted" style="margin:0;font-size:13px">{T_("Marca els pisos que ja tens de la torre on ets. Cada torre té 12 pisos, un de cada: quan l'acabes, comença la següent, amb els mateixos pisos però amb menys efecte (els de la llista són els de la primera). Cada pis costa més que l'anterior, triïs el que triïs: construeix primer els de dalt. Amb $destroy et torna la kakera.")}
+  <p class="muted" style="margin:0;font-size:13px">{T_("Marca els pisos que ja tens de la torre on ets. Cada torre té 12 pisos, un de cada: quan l'acabes, comença la següent, amb els mateixos pisos però amb menys efecte (la llista mostra els de la torre on ets quan els sap: si no, enganxa el $kt). Cada pis costa més que l'anterior, triïs el que triïs: construeix primer els de dalt. Amb $destroy et torna la kakera.")}
    <label style="white-space:nowrap">{T_("Torre núm.:")} <input type="text" id="towerNum" inputmode="numeric" style="width:56px"></label>
    <label style="white-space:nowrap">{T_("Preu base ($towervalue):")} <input type="text" id="towerValue" inputmode="numeric" style="width:90px" aria-label="$towervalue"></label></p>
  </section>
@@ -2849,7 +2864,7 @@ document.addEventListener('keydown', ev => {{ if (ev.key === 'Escape' && more.op
 <script>{JS_BACKUP}</script>
 <script>{JS_UPD.replace("__META__", js(read_meta())).replace("__SPECIALS__", js(spec)).replace("__SIZES__", js({x["name"]: x["total"] for x in series})).replace("__HAREM_N__", str(len(d["harem"]))).replace("__SOURCES__", js(sources))}</script>
 <script>{JS_ESP}</script>
-<script>{JS_MILL.replace("__BADGES__", js([[n, p] for n, p, _ in BADGES])).replace("__PLAN__", js(BADGE_PLAN)).replace("__TOWER__", js([n for n, _ in TOWER])).replace("__PORD__", js([n for _, ns in PERK_GROUPS for n in ns])).replace("__SORD__", js(SHOP_ORDER)).replace("__PDESC__", js({n: t(x) for n, x in PERKS.items()})).replace("__SDESC__", js({n: t(x) for n, x in SHOP.items()}))}</script>
+<script>{JS_MILL.replace("__BADGES__", js([[n, p] for n, p, _ in BADGES])).replace("__PLAN__", js(BADGE_PLAN)).replace("__TOWER__", js([n for n, _ in TOWER])).replace("__TOWERFX__", js({tn: {n: t(x) for n, x in d.items()} for tn, d in TOWER_FX.items()})).replace("__PORD__", js([n for _, ns in PERK_GROUPS for n in ns])).replace("__SORD__", js(SHOP_ORDER)).replace("__PDESC__", js({n: t(x) for n, x in PERKS.items()})).replace("__SDESC__", js({n: t(x) for n, x in SHOP.items()}))}</script>
 <script>{JS_CLS}</script>
 <script>{JS_ORD}</script>
 <script>{JS_PD}</script>
