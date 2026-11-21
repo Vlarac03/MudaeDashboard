@@ -3604,8 +3604,19 @@ def do_action(action, body):
     elif action == "refa":
         pass  # només tornar a fer el tauler i l'Excel (main() ho fa després de cada acció)
     elif action == "novetats":  # «Actualitzar el tauler»: quants fitxers han canviat a GitHub ("" si cap); el tauler es refà igualment
-        if (DIR / ".git").exists():
-            return ""  # una còpia de git (la de Victor) es posa al dia amb git pull, no aquí
+        if (DIR / ".git").exists():  # una còpia de git (la de Victor): git pull sense barrejar res (--ff-only), i si ha baixat codi, el tauler es refà amb el nou
+            import subprocess
+            git = lambda *a: subprocess.run(["git", "-C", str(DIR), *a], capture_output=True, text=True, encoding="utf-8")
+            try:
+                abans = git("rev-parse", "HEAD").stdout
+                p = git("pull", "--ff-only")
+            except OSError:
+                return ""  # shortcut: sense git instal·lat, com si no n'hi hagués
+            if p.returncode:
+                raise ValueError(t("No he pogut fer git pull (canvis teus sense desar?): fes-lo a mà."))
+            if git("rev-parse", "HEAD").stdout != abans:
+                raise SystemExit(subprocess.run([sys.executable, str(DIR / "mudae.py")]).returncode)
+            return ""
         try:
             n = len(changed_files(github_files()))
         except OSError:
