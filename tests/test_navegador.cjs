@@ -57,6 +57,12 @@ const sample = n => fs.readFileSync(path.join(mostres, n + '.txt'), 'utf8');
   await setTower(2); assert.match(await floor8(), /2% less power/);
   await setTower(3); assert.match(await page.textContent('#towerNext'), /tower 1's; in tower 3 they are weaker/);
   await setTower(1); assert.match(await floor8(), /4% less power/);
+  // un $kt d'una torre que no coneixem (la 3): els seus efectes surten sense haver de fer res, i es recorden en canviar de torre
+  await paste(sample('kt3torre'));
+  assert.match(await page.evaluate(() => document.querySelector('input[data-floor="2"]').nextElementSibling.textContent), /inventat/);
+  assert.doesNotMatch(await page.textContent('#towerNext'), /paste your \$kt to see/);  // ja no avisa: els coneix
+  await setTower(1); await setTower(3);
+  assert.match(await page.evaluate(() => document.querySelector('input[data-floor="2"]').nextElementSibling.textContent), /inventat/);
   await paste(sample('kt10pisos'));
 
   // 4. dades velles: un $kt de fa 10 dies atenua la targeta i ho diu

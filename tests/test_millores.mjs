@@ -55,6 +55,10 @@ assert.equal(fd2.fd[8], 'Botones de kakera cuestan -2% poder de kakera');   // t
 assert.equal(fd1.fd[8], 'Botones de kakera cuestan -4% poder de kakera');   // torre 1: -4 %
 assert.equal(fd2.fd[12], 'Comandos $colorll y $colorsl desbloqueados');
 assert.equal(readFull('El siguiente nivel cuesta 40.000\nTienes 5\nArma un piso usando $build <n>', 5000).fd, undefined);  // sense la llista, no n'hi ha
+// un $kt de la torre 3 (és el de la 2 amb el nombre de torres i el preu canviats, i un efecte inventat): els efectes surten com a de la torre 3
+const kt3 = readFull(sample('kt3torre'), null);
+assert.equal(kt3.t, 2); assert.equal(kt3.nf, 32); assert.equal(kt3.fdT, 3);
+assert.match(kt3.fd[2], /\+10% \(inventat/);
 // els pisos sense fer amb un emoji davant (copiat d'una altra manera): totes les línies semblen marcades, però el preu diu 17
 const ktEmoji = ktFull.replace(/^\[(\d+)\]/gm, '⬛ [$1]');
 assert.deepEqual(readMudae(ktEmoji, 5000), { ktCost: 90000, tv: 5000, nf: 17, k: 29511 });
