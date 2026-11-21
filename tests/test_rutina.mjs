@@ -1,6 +1,7 @@
 // Proves de «quan es pot tornar a fer» de la llista del tauler. Executa: node tests/test_rutina.mjs
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
+const sample = name => readFileSync(new URL(`./mostres/${name}.txt`, import.meta.url), 'utf8');  // missatges de Mudae tal com surten
 
 const py = readFileSync(new URL('../mudae.py', import.meta.url), 'utf8');
 const js = py.match(/JS_TODAY = """([\s\S]*?)"""/)[1];
@@ -42,51 +43,17 @@ assert.equal(t.lastClaim(at(29, 9, 0)), at(29, 8, 2));
 assert.deepEqual(t.readResets('jo, no puedes reclamar hasta dentro de 2h 18 min.\nTienes 0 rolls restantes.\nEl siguiente reinicio será en 18 min.\nSiguiente reinicio de $daily en 19h 52 min.'), { claim: 138, roll: 18 });
 assert.deepEqual(t.readResets('jo, you can claim right now! The next claim reset is in 1h 14 min.\nYou have 8 rolls left. Next rolls reset in 18 min.'), { claim: 74, roll: 18 });
 // $settings de Victor (01/11/2026): cada quant hi ha reclam i el minut dels reinicis
-const settings = `🛠️ Ajustes de Servidor 🛠️
-(Server sin premium)
-
-· Prefijo: $ ($prefix)
-· Idioma: es ($lang)
-· Reinicio de reclamos: Cada 180 min. ($setclaim)
-· Minuto exacto de cada reinicio: xx:02 ($setinterval)
-· Reinicio cambiado: por +0 min. ($shifthour)
-· Rolls por hora: 8 ($setrolls)
-· Tiempo antes de que se expire la reacción para reclamar: 45 sec. ($settimer)
-· Rolls sniping: 2 ($togglesnipe) => 8 sec.
-· Calculación de kakera: Reclamos y ranking de favoritos (y número de personajes reclamados) ($togglekakeraclaim/$togglekakeralike)`;
+const settings = sample('settings');
 assert.deepEqual(t.readSettings(settings), { iv: 180, m: 2 });
 assert.deepEqual(t.readSettings('Claim reset: every 2h ($setclaim)'), { iv: 120, m: null });  // en anglès: suposat
 assert.equal(t.readSettings('Rolls: 10 ($setrolls)'), null);
 // El $tu enganxat: minuts fins que cada tasca torna (0 = ja la pots fer)
 // JS_TODAY no és r"""…""": al fitxer de Python les barres van doblades (\\d) i al tauler surten soles (\d)
 const readTu = new Function((js.match(/const tuMins = [^\n]*/)[0] + '\n' + js.match(/function readTu[\s\S]*?\n}\n/)[0]).replaceAll('\\\\', '\\') + 'return readTu;')();
-const tuEs = `jo, no puedes reclamar hasta dentro de 2h 18 min.
-Tienes 0 rolls restantes.
-El siguiente reinicio será en 18 min.
-Siguiente reinicio de $daily en 19h 52 min.
-
-¡Puedes reaccionar a kakera en este momento!
-Poder: 110%
-Cada botón de kakera consume 36% de su poder de reacción.
-Tus personajes con 10+ llaves, consumen la mitad del poder (18%)
-Capital: 4.532:kakera:
-
-¡$rt está disponible!
-Siguiente $dk en 19h 52 min.
-¡Puedes votar en este momento!
-
-0 $oh restantes para hoy, 0 $oc, 0 $oq y 0 $ot.
-14h 16 min hasta la recarga.
-Capital: 1.725 :sp:
-=> $tuarrange`;
+const tuEs = sample('tuEs');
 // els minuts que diu Mudae: tirades en 18 min i esferes en 14 h 16 min (cada servidor reinicia a una hora diferent)
 assert.deepEqual(readTu(tuEs), { claim: 138, rolls: 18, daily: 1192, kakera: 0, rt: 0, dk: 1192, vote: 0, oh: 856, oc: 856, tu: true });
-const tuEn = `jo, you can claim right now! The next claim reset is in 1h 14 min.
-You have 8 rolls left. Next rolls reset in 18 min.
-$daily is available!
-You can't react to kakera for 41 min.
-You may vote again in 3h 05 min.
-2 $oh left for today, 1 $oc`;
+const tuEn = sample('tuEn');
 assert.deepEqual(readTu(tuEn), { claim: 0, rolls: 0, daily: 0, kakera: 41, vote: 185, oh: 0, oc: 0, tu: true });
 assert.deepEqual(readTu("You have 0 rolls left.\n$rt is not ready"), { rolls: true, rt: true, tu: true });  // sense minuts: com si ho marquessis a mà
 assert.deepEqual(readTu('Hola'), {});
@@ -129,12 +96,7 @@ assert.ok(!gs.some(g => g.includes('A') && g.includes('B')));  // les grans, en 
 // el $bonus d'un amic de Victor (02/11/2026) porta «claims = 30» i el $rt: no s'ha de prendre per un $tu
 const paste = py.match(/JS_PASTE = r"""([\s\S]*?)"""/)[1];
 const bonusLike = new Function('text', paste.match(/const bonusLike = [^\n]*/)[0] + '\nreturn bonusLike;');
-const bonusAmic = ` · Rolls por hora: +8 (6 $k + 0 $kl + 2 $kt)
- · Espacios de lista de deseos: +8 (6 $k + 0 $kl + 2 $kt)
- · Tiempo de espera para $rt: 20h (-30h $k -0h $kl)
- · Poder máximo de Kakera: 115% ($kt)
-2. · Probabilidad de obtener una llave adicional en deseos: +10% ($kt)
- · Fuentes adicionales de sphere: claims = 30 ($kt)`;
+const bonusAmic = sample('bonusAmic');
 assert.ok('claim' in readTu(bonusAmic) && 'rt' in readTu(bonusAmic));  // sense el control, semblava un $tu
 assert.equal(bonusLike(bonusAmic), true);  // fins i tot sense la capçalera «Bonos del Jugador»
 assert.equal(bonusLike('1. Bonos del Jugador\n · Rolls por hora: +8'), true);

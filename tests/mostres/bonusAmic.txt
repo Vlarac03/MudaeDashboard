@@ -1,0 +1,6 @@
+ · Rolls por hora: +8 (6 $k + 0 $kl + 2 $kt)
+ · Espacios de lista de deseos: +8 (6 $k + 0 $kl + 2 $kt)
+ · Tiempo de espera para $rt: 20h (-30h $k -0h $kl)
+ · Poder máximo de Kakera: 115% ($kt)
+2. · Probabilidad de obtener una llave adicional en deseos: +10% ($kt)
+ · Fuentes adicionales de sphere: claims = 30 ($kt)

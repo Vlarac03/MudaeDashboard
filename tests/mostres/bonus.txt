@@ -1,0 +1,10 @@
+1. Bonos del Jugador
+
+ · Rolls por hora: +8 (6 $k + 1 $kl + 1 $kt)
+ · Tiempo de espera para $rt: 20h (-30h $k -0h $kl)
+ · Límite $limroul de animanga: -6 $wa/$ha (6 $kl + 0 $kt)
+ · Poder máximo de Kakera: 110% ($kt)
+ · Costo de poder por botón de kakera: 36% (-60% $k -4% $kt)
+ · Bono adicional para botones de kakera: +0% ($bk)
+2. · Probabilidad de obtener una llave adicional en deseos: +10% ($kt)
+ · $oh bono diario: +40 spheres, 2% de obtener 1 $oq ($op) y 0% $ot ($shop)

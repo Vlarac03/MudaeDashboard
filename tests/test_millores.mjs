@@ -1,6 +1,7 @@
 // Proves de la pestanya «Millores»: llegir el $k, el $kt i el $opp. Executa: node tests/test_millores.mjs
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
+const sample = name => readFileSync(new URL(`./mostres/${name}.txt`, import.meta.url), 'utf8');  // missatges de Mudae tal com surten
 
 const py = readFileSync(new URL('../mudae.py', import.meta.url), 'utf8');
 const js = py.match(/JS_MILL = r"""([\s\S]*?)"""/)[1];
@@ -9,16 +10,7 @@ const num = js.match(/const num = [^\n]*/)[0];
 const costs = js.match(/const PCOST[^\n]*\n[^\n]*\n[^\n]*/)[0], lvl = js.match(/const LVL[^\n]*\n[^\n]*/)[0];
 const readMudae = new Function('BADGES', [num, costs, lvl, js.match(/function readMudae[\s\S]*?\n}\n/)[0]].join('\n') + 'return readMudae;')(BADGES);
 
-const k = `¿Cómo coleccionar kakera en el servidor? (Cambie las opciones con $togglekakera)
-Tienes 28.223!
-Convierte tu kakera en insignias de poder:
- Bronze IV · ¡Máximo alcanzado!
- Silver IV · ¡Máximo alcanzado!
- Gold IV · ¡Máximo alcanzado!
- Sapphire II · 15.000
- Ruby I · 14.000
-Kakeratower: $kt
-Desbloquea un nivel con $bronze, $silver...`;
+const k = sample('k');
 // el preu que surt és el del nivell següent: Sapphire II → el III costa 15.000 (5.000 per nivell, els de sèrie)
 assert.deepEqual(readMudae(k, 5000), { b: { Bronze: 4, Silver: 4, Gold: 4, Sapphire: 2, Ruby: 1, Emerald: 0, Diamond: 0 }, bp: { Sapphire: 5000, Ruby: 7000 }, k: 28223 });
 // un servidor amb altres preus ($badgevalue) i el Ruby IV, que ja ve descomptat al $k: el preu per nivell es desa sense descompte
@@ -33,113 +25,43 @@ assert.deepEqual(readMudae('Harem de jo\n\nLanie Parish ·  🔑 (1)\nHello Kitt
 // $tu: les dues «Capital», la de la kakera i la de les esferes
 assert.deepEqual(readMudae('Poder: 110%\nCapital: 4.532:kakera:\n\n0 $oh restantes para hoy\nCapital: 1.725 :sp:\n=> $tuarrange', 5000), { k: 4532, sp: 1725 });
 
-const kt = `Gasta tupara armar los 12 pisos de la torre:
-Tu nivel actual es
-El siguiente nivel cuesta 40.000
-Tienes 615
-Arma un piso usando $build <numero del beneficio>
- [1]  +2 espacios en la lista de deseos`;
+const kt = sample('kt');
 assert.deepEqual(readMudae(kt, 5000), { ktCost: 40000, nf: 7, k: 615 });
 assert.deepEqual(readMudae(kt.replace('cuesta 40.000', 'costs 80,000'), 10000), { ktCost: 80000, nf: 7, k: 615 });
 assert.deepEqual(readMudae(kt, null), { ktCost: 40000, k: 615 });  // sense el preu base de la torre, no sabem quants pisos tens
 // el $kt sencer d'un amic de Victor (02/11/2026): «+1 torre», el preu per pis i una marca als pisos fets (17 = 12 + 5; 90.000 = 5.000 × 18)
-const ktFull = `Gasta tu para armar los 12 pisos de la torre:
-• Escoja un beneficio diferente cada vez que armes un piso
-• El siguiente piso es más caro (+5.000 por piso, $towervalue)
-• Puedes reiniciar tus torres y ser reembolsado con $destroy
-• La construcción puede ser infinita: si logras armar los 12 pisos, podrás armar una torre adicional con bonos menores (el costo seguirá incrementándose)
-
-Tu nivel actual es  (+ 1 torre)
-El siguiente nivel cuesta 90.000
-Tienes 29.511
-
-Arma un piso usando $build <numero del beneficio>
-
-Lista de beneficios con sus números correspondientes:
-
-[1] +2 espacios en la lista de deseos
-☑️ [2]  Posibilidad incrementada para la aparición de tu $starwish: +25%
-[3] Límite de $limroul reducidos 100 $wa, 100 $ha, 70 $wg, 70 $hg
-[4] +10% de posibilidades de ganar una segunda llave si el personaje está deseado
-[5] Devela 1 botón aleatorio para el comando $oh
-[6] +30 spheres con $dk
-☑️ [7]  Máximo poder base de kakera incrementado por un +5%
-:ballot_box_with_check: [8]  Botones de kakera cuestan -2% poder de kakera
-[9] Bono máximo en llaves doradas incrementado por +500 kakera/3hrs ($bku)
-☑️ [10]  Kakera de Luz otorga +1 kakera aleatorio
-☑️ [11]  +1 roll por hora
-[12] Comandos $colorll y $colorsl desbloqueados`;
+const ktFull = sample('ktFull');
 assert.deepEqual(readMudae(ktFull, 7000), { ktCost: 90000, tv: 5000, t: 1, f: [2, 7, 8, 10, 11], nf: 17, k: 29511 });  // el preu per pis del $kt mana
+// el $kt sencer a la casella d'Avui no és un $tu (parla de «+1 roll por hora» i del $dk: abans marcava les tirades i el $dk)
+const paste = py.match(/JS_PASTE = r"""([\s\S]*?)"""/)[1];
+const notTu = new Function('text', paste.match(/const bonusLike = [^\n]*/)[0] + '\nreturn bonusLike;');
+assert.equal(notTu(ktFull), true);
+assert.equal(notTu('Tienes 0 rolls.\nPuedes reclamar ahora.'), false);
+// el $kt d'un jugador amb 10 pisos (Victor, 21/11/2026): codis d'emoji enganxats al text («es:tow10:», «Tienes 22.551:kakera:»)
+const kt10 = sample('kt10pisos');
+assert.deepEqual(readMudae(kt10, null), { ktCost: 55000, tv: 5000, t: 0, f: [1, 2, 4, 5, 6, 7, 8, 9, 10, 11], nf: 10, k: 22551 });
+assert.equal(notTu(kt10), true);  // tampoc no és un $tu: parla de «+1 roll por hora»
+// els pisos sense fer amb un emoji davant (copiat d'una altra manera): totes les línies semblen marcades, però el preu diu 17
+const ktEmoji = ktFull.replace(/^\[(\d+)\]/gm, '⬛ [$1]');
+assert.deepEqual(readMudae(ktEmoji, 5000), { ktCost: 90000, tv: 5000, nf: 17, k: 29511 });
+// en un altre idioma, sense el «(+1 torre)» entès: la torre surt del preu i les marques quadren (5 = 17 - 12)
+assert.deepEqual(readMudae(ktFull.replace('(+ 1 torre)', '(+ 1 Turmx)'), 5000), { ktCost: 90000, tv: 5000, t: 1, f: [2, 7, 8, 10, 11], nf: 17, k: 29511 });
+// els 12 marcats: aquella torre ja és acabada
+const kt12 = ktFull.replace(/^\[(\d+)\]/gm, '☑️ [$1]').replace('cuesta 90.000', 'cuesta 125.000');
+assert.deepEqual(readMudae(kt12, 5000), { ktCost: 125000, tv: 5000, t: 2, f: [], nf: 24, k: 29511 });
+assert.equal(readMudae('Next level cost: 40,000\nYou have 615\nBuild a floor with $build <number>', 5000).ktCost, 40000);  // amb dos punts
 
-const opp = `Mejora los beneficios del personaje seleccionado.
-Tienes 1.780
-Harry Potter
-[LVL 2] Probabilidad de aparición incrementada: 0 > 15%
-[LVL 0] Valor de kakera base incrementado: 0 > 20
-[LVL 0] Probabilidad de obtener +1 botón de kakera: 0 > 7%
-[LVL 6] Probabilidad de obtener +1 llave: 0 > 4%
-[LVL 0] Cantidad de spheres: 0 > 3
-[LVL 0] a
-[LVL 0] b
-[LVL 0] c
-[LVL 0] d
-[LVL 1] El primer $oh del día genera +20 spheres`;
+const opp = sample('opp');
 assert.deepEqual(readMudae(opp, 5000), { opp: { name: 'Harry Potter', levels: [2, 0, 0, 6, 0, 0, 0, 0, 0, 1] }, sp: 1780 });
 // el $opp de debò (Victor, 30/10/2026): al màxim posa [MAX], no [LVL 1]
-const oppMax = `Mejora los beneficios del personaje seleccionado.
-Un bono se aplica cuando es mejorado completamente. Filtrar con variables funciona.
-Escribe $infosphere para ver más información.
-Tienes 1.725 :sp:
-character image
-Harry Potter
-[LVL 0]  Probabilidad de aparición incrementada...
-[LVL 0]  Valor de kakera base incrementado: 0 > 20
-[MAX]  Probabilidad de obtener +1 botón de kakera
-[LVL 0]  Probabilidad de obtener +1 llave: 0 > 4%
-[LVL 0]  Cantidad de spheres...
-[LVL 0]  Un personaje aleatorio...
-[LVL 0]  Los botones de kakera...
-[LVL 0]  Aparece con 4 botones...
-[LVL 0]  Un botón de sphere...
-[MAX]  El primer $oh del día genera +20 spheres y tiene un +1% de probabilidad de otorgar 1 $oq`;
+const oppMax = sample('oppMax');
 assert.deepEqual(readMudae(oppMax, 5000), { opp: { name: 'Harry Potter', levels: [0, 0, 6, 0, 0, 0, 0, 0, 0, 1] }, sp: 1725 });
 // el $opz de Victor (01/11/2026): els personatges amb esferes, un per pàgina, amb el mateix format que el $opp
-const opz = `1. $opz
-2. MudaeAPP — 12:29
-Mejora los beneficios del personaje seleccionado.
-Un bono se aplica cuando es mejorado completamente. Filtrar con variables funciona.
-Escribe $infosphere para ver más información.
-Tienes 145
-Harry Potter
-[LVL 0] Probabilidad de aparición incrementada para los personajes adyacentes a este en tu $wishlist: 0 > 15%
-[LVL 0] Valor de kakera base incrementado: 0 > 20
-[LVL 0] Probabilidad de obtener +1 botón de kakera: 0 > 7%
-[LVL 0] Probabilidad de obtener +1 llave: 0 > 4%
-[LVL 0] Cantidad de spheres ganadas por botón de kakera (excepto púrpura) cliqueado por ti en este personaje: 0 > 3
-[LVL 0] Un personaje aleatorio de tu lista de deseos podría aparecer automáticamente después de que tu rolleas este personaje (2% de probabilidades). Si no está reclamado, el personaje tendrá protección de deseos. Si ya ha sido reclamado por ti, obtendrás 3 llaves Omega (revisa $ok)
-[LVL 0] Los botones de kakera se pueden convertir en kakera del Caos cuando tu rolleas este personaje (1% de probabilidad por kakera excluyendo rojo, luz, oscuridad y arcoíris)
-[LVL 0] Aparece con 4 botones de kakera (sin púrpura) y costando la mitad de poder cuando rolleado por primera vez ese día, solo tu puedes hacer click. El descuento aplica solo a los primeros 40 cliqueos del día. Las spheres adquiridas por el beneficio 5 se duplicarán en estos botones tras realizar 40 clicks.
-[LVL 0] Un botón de sphere aparece cuando rolleas este personaje por primera vez ese día. 1/7 de obtener 1 $oq por click. Hasta 10 clicks en spheres por día, solo tú puedes hacer click.
-[MAX] El primer $oh del día genera +20 spheres y tiene un +1% de probabilidad de otorgar 1 $oq`;
+const opz = sample('opz');
 assert.deepEqual(readMudae(opz, 5000), { opp: { name: 'Harry Potter', levels: [0, 0, 0, 0, 0, 0, 0, 0, 0, 1] }, sp: 145 });
 const fn = name => js.match(new RegExp(`function ${name}[\\s\\S]*?\\n}\\n`))[0];
 // $os: la botiga d'esferes (10 bonus; alguns ocupen dues línies)
-const os = `Mejora los bonos de los ourobeneficios. Estos bonos se aplican a TODOS los personajes. Escribe $shoprefund para reembolsar las spheres. Escribe $oo para los fragmentos.
-Cada bono tiene 10 niveles (su costo se incrementa por +4,000 cada nivel).
-Tienes 1.725
-[LVL 0] Una porción del bono...
-[LVL 3] Una megasphere tiene un 1/50...
-[LVL 0] El botón de kakera adicional...
-[LVL 0] Cuando obtienes una llave...
-[LVL 0] Cuando un botón de kakera entrega spheres...
-[LVL 0] Los deseos que aparezcan gracias al beneficio 6...
-Tus deseos reclamados que aparecen gracias al beneficio 6 pueden dar +1 llave omega adicional: 0% > 50%
-[LVL 0] Todo el kakera del Caos...
-[LVL 0] Si aparecen en personajes completamente mejorados...
-Al hacer click en botones de kakera...
-[LVL 0] Cada día, se pueden cliquear más botones de sphere...
-Spheres cliqueados gracias al beneficio 9 dan más spheres: 0% > 10%
-[LVL 10] El primer $oh del día...`;
+const os = sample('os');
 assert.deepEqual(readMudae(os, 5000), { shop: [0, 3, 0, 0, 0, 0, 0, 0, 0, 10], sp: 1725 });
 assert.equal(readMudae(os.replace('[LVL 3]', '[MAX]'), 5000).shop[1], 10);
 // $or et torna el 90 % del que hi has posat: l'Harry Potter de Victor (01/11/2026), millora 4 al LVL 4 i la 10 → 3.000, et torna 2.700
@@ -163,22 +85,15 @@ assert.deepEqual(cheapestBuys([0, 0, 0, 0], [2, 4], shopMax, shopCost), [{ n: 2,
 assert.deepEqual(cheapestBuys([0, 3, 0, 0], [2, 4], shopMax, shopCost, 2), [{ n: 4, l: 1, cost: 4000 }, { n: 4, l: 2, cost: 8000 }]);
 
 // $bonus de Victor (01/11/2026), dues pàgines («1.» i «2.»): una línia per bonus, i el que en fa servir el tauler
-const bonus = `1. Bonos del Jugador
-
- · Rolls por hora: +8 (6 $k + 1 $kl + 1 $kt)
- · Tiempo de espera para $rt: 20h (-30h $k -0h $kl)
- · Límite $limroul de animanga: -6 $wa/$ha (6 $kl + 0 $kt)
- · Poder máximo de Kakera: 110% ($kt)
- · Costo de poder por botón de kakera: 36% (-60% $k -4% $kt)
- · Bono adicional para botones de kakera: +0% ($bk)
-2. · Probabilidad de obtener una llave adicional en deseos: +10% ($kt)
- · $oh bono diario: +40 spheres, 2% de obtener 1 $oq ($op) y 0% $ot ($shop)`;
+const bonus = sample('bonus');
 const B = readMudae(bonus + '\n · Espacios de lista de deseos: +8 (6 $k + 0 $kl + 2 $kt)\n · Espacios de Starwish: +0 (0 $kl + 0 $sw)', 5000).bonus;
 assert.equal(B.length, 10);
 assert.deepEqual(B[0], ['Rolls por hora', '+8 (6 $k + 1 $kl + 1 $kt)']);
 assert.deepEqual(B[6], ['Probabilidad de obtener una llave adicional en deseos', '+10% ($kt)']);
 assert.deepEqual(readMudae(bonus.replaceAll('·', '•'), 5000).bonus.slice(0, 1), [['Rolls por hora', '+8 (6 $k + 1 $kl + 1 $kt)']]);  // amb • en lloc de ·
-assert.equal(readMudae('Bonos del Jugador\n$limroul $kl', 5000).bonus, undefined);  // cap línia entesa: no desa un $bonus buit
+assert.equal(readMudae('Bonos del Jugador\n$limroul $kl', 5000).bonus, undefined);
+// un tros del $bonus sense capçalera ni $limroul (d'un amic de Victor): 3 línies o més amb «($kt)», «(6 $k + …)»
+assert.deepEqual(readMudae(' · Rolls por hora: +8 (6 $k + 0 $kl + 2 $kt)\n · Poder máximo de Kakera: 115% ($kt)\n · Tiempo de espera para $rt: 20h (-30h $k -0h $kl)', 5000).bonus.length, 3);  // cap línia entesa: no desa un $bonus buit
 // les dues pàgines del $bonus, cadascuna sola (Victor, 01/11/2026: la 2 sola no s'entenia), i ajuntades
 const [pg1, pg2] = bonus.split('\n2. ');
 assert.equal(readMudae(pg1, 5000).bonus.length, 6);
@@ -192,27 +107,7 @@ const k1 = readMudae('Hello Kitty ·  (12)\nLanie Parish ·  (1)\nPágina 1/2', 
 assert.deepEqual(mergeBonus(k1, k2).sort((a, b) => b[1] - a[1]), [['Hello Kitty', 12], ['Rui (HOHD)', 3], ['Lanie Parish', 2]]);
 assert.equal(readMudae('[LVL 3] Una megasphere tiene un 1/50\n · Megaspheres: 0', 5000).bonus, undefined);  // el $os no és el $bonus
 // el $bonus tal com surt en copiar-lo de Discord (Victor, 01/11/2026): cada línia comença amb el codi de l'emoji
-const clip = `:addroll: · Rolls por hora: +8 (6 $k + 1 $kl + 1 $kt)
-:wlslot: · Espacios de lista de deseos: +8 (6 $k + 0 $kl + 2 $kt)
-:wlslot: · Bono de aparición para deseos: +150% ($k + $bw + slash)
-:sw: · % bono adicional de aparición para $starwish: +150% ($kt + $bw + $tuto) (= 300%)
-:sw: · Espacios de Starwish:  +0 (0 $kl + 0 $sw)
-:wishprotect: · Probabilidad de aparición de Wishprotect: 1/10.000 ($kl)
-:rtcd: · Tiempo de espera para $rt: 20h (-30h $k -0h $kl)
-:disablemore: · Límite $limroul de animanga: -6 $wa/$ha (6 $kl + 0 $kt)
-:disablemore: · Límite $limroul de juegos: -4 $wg/$hg (4 $kl + 0 $kt)
-:morekakera: · Bono por kakera obtenido: +0% (premium + slash)
-:morekakera: · Bono de kakera de llaves doradas: 4.500 (0 $kt, 0 $bk)
-:morekakera: · Poder máximo de Kakera: 110% ($kt)
-:morekakera: · Costo de poder por botón de kakera: 36% (-60% $k -4% $kt)
-:morekakera: · Bono adicional para botones de kakera: +0% ($bk)
-:morekakera: · Bono adicional para botones de kakera en starwishes: +16% ($sw)
-:kakeraL: · Kakera aleatorio por kakera de Luz: 4-5 (1 $kt)
-:bku: · Probabilidad de completar + reiniciar $bku en $sw: +0% ($kl) (este intervalo: 10%)
-:chaoskey: · Probabilidad de obtener una llave adicional en deseos: +10% ($kt)
-:sp: · Spheres adicionales: +0 (spheres cliqueadas + premium)
-:sp: · $oh bono diario: +80 spheres, 4% de obtener 1 $oq ($op) y 0% $ot ($shop)
-:spM: · Megaspheres: 0 recompensas y 0% de probabilidad de ser gratis ($shop)`;
+const clip = sample('clip');
 const noEmoji = new Function(js.match(/const noEmoji = [^\n]*/)[0] + '\nreturn noEmoji;')();
 assert.equal(readMudae(clip, 5000).bonus, undefined);  // sense treure els emojis, no se n'entén cap línia
 assert.equal(readMudae(noEmoji(clip), 5000).bonus.length, 21);
@@ -225,17 +120,22 @@ assert.deepEqual(readMudae('Hola, això no és de Mudae', 5000), {});
 assert.deepEqual(readMudae('Kakera rewards\nBonus Bronze I + Silver I + Gold I\n$bronze', 5000), {});  // el $kakerareward no són els teus nivells
 // torre: 12 pisos per torre; el $kt diu el total i d'aquí surt la torre on ets
 const TOWER = [11, 8, 7, 6, 5, 1, 4, 2, 9, 10, 3, 12];
-const [towerNext, towerFromKt] = new Function('TOWER', fn('towerNext') + fn('towerFromKt').replace(/\n$/, '') + '\nreturn [towerNext, towerFromKt];')(TOWER);
-assert.deepEqual(towerNext({ f: [11, 8], tv: 5000 }), { tw: 0, built: 2, cost: 15000, rec: 7 });
-assert.deepEqual(towerNext({ t: 1, f: [], tv: 5000 }), { tw: 1, built: 12, cost: 65000, rec: 11 });  // torre 2: torna a començar per l'11
+const [towerNext, towerFromKt] = new Function('TOWER', js.match(/const X10_FROM = [^\n]*/)[0] + '\n' + fn('towerNext') + fn('towerFromKt').replace(/\n$/, '') + '\nreturn [towerNext, towerFromKt];')(TOWER);
+assert.deepEqual(towerNext({ f: [11, 8], tv: 5000 }), { tw: 0, built: 2, ok: true, cost: 15000, rec: 7 });
+assert.deepEqual(towerNext({ t: 1, f: [], tv: 5000 }), { tw: 1, built: 12, ok: true, cost: 65000, rec: 11 });  // torre 2: torna a començar per l'11
 assert.deepEqual(towerFromKt({ f: [11, 8] }, 14), { t: 1, f: [] });  // 14 pisos: torre 2, els marcats eren de la 1
 assert.deepEqual(towerFromKt({ t: 1, f: [11, 8] }, 14), { t: 1, f: [11, 8] });
 assert.equal(towerNext({ f: [8], tv: null }).cost, null);  // sense preu base, no s'inventa el preu
+// el $kt (sense marques) diu 18 pisos i en tens 5 de marcats: el preu és el del $kt, i no recomana cap pis (podria ser un que ja tens)
+assert.deepEqual(towerNext({ t: 1, f: [2, 7, 8, 10, 11], nf: 18, tv: 5000 }), { tw: 1, built: 18, ok: false, cost: 95000, rec: null });
+assert.deepEqual(towerFromKt({ t: 1, f: [2, 7, 8, 10, 11] }, 15), { t: 1, f: [] });  // més marques que pisos: no són bones
+assert.deepEqual(towerFromKt({ t: 1, f: [2, 7] }, 17), { t: 1, f: [2, 7] });  // en falten: les deixa i en marques més
 // el preu base surt del $kt si has marcat els pisos: 7 pisos i el següent costa 40.000 → 5.000
-const towerGuess = new Function('TOWER', fn('towerNext') + fn('towerGuess') + 'return towerGuess;')(TOWER);
+const towerGuess = new Function('TOWER', js.match(/const X10_FROM = [^\n]*/)[0] + '\n' + fn('towerNext') + fn('towerGuess') + 'return towerGuess;')(TOWER);
 assert.equal(towerGuess({ f: [1, 2, 4, 7, 8, 10, 11], ktCost: 40000 }), 5000);
 assert.equal(towerGuess({ f: [], ktCost: 40000 }), null);  // sense pisos marcats no ho sabem
 assert.equal(towerGuess({ f: [8], ktCost: 300000 }), null);  // fora de 5.000-50.000: els pisos marcats no quadren
+assert.equal(towerGuess({ f: [1, 2], ktCost: 40000 }), null);  // 40.000 / 3 no és exacte: el $kt és d'abans dels pisos marcats
 // «Posar al dia» endevina què has enganxat
 const upd = py.match(/JS_UPD = r"""([\s\S]*?)"""/)[1];
 const detect = new Function(upd.match(/function detect[\s\S]*?\n}\n/)[0] + 'return detect;')();
@@ -259,9 +159,19 @@ assert.deepEqual(pdSumrare('ggezw\n\nParadox:sunny: (1/20)\n\n4:sunny: (11/165)\
 // una altra raresa amb nom (wiki: la fila 6 són les ultraentitats i les paradoxes), amb l'emoji darrere
 assert.deepEqual(pdSumrare('Ultra Beast:ub: (2/11)\nParadox (1/20)\n5 (3/90)\n300 / 1.025').rare, { U: [2, 11], P: [1, 20], 5: [3, 90] });
 assert.deepEqual(pdSumrare('UB (2/11)\nMítico (4/22)\n5 (3/90)\n300 / 1.025').rare, { U: [2, 11], 'Mítico': [4, 22], 5: [3, 90] });  // una altra amb nom: tal qual
-// torre sense marques, de la 76 en amunt: el preu va x10 (wiki «Kakera Tower/Prices»): pis 951 → 952 × 5.000 × 10
+// torre sense marques, de la 77 en amunt: el preu va x10 (wiki «Kakera Tower/Prices»): pis 951 → 952 × 5.000 × 10
 assert.equal(readMudae('El siguiente nivel cuesta 47.600.000\nTienes 5\nArma un piso usando $build <n>', 5000).nf, 951);
 assert.equal(readMudae('El siguiente nivel cuesta 4.500.000\nTienes 5\nArma un piso usando $build <n>', 5000).nf, 899);  // torre 75: encara sense x10
+// la taula de la wiki (Victor, 21/11/2026): el pis N costa 5.000 × N fins al 912 (torre 76 sencera); el 913, el primer de la torre 77, 45.650.000
+const nfOf = c => readMudae(`El siguiente nivel cuesta ${c}\nTienes 5\nArma un piso usando $build <n>`, 5000).nf;
+assert.equal(nfOf('4.560.000'), 911);   // pis 912: l'últim sense x10
+assert.equal(nfOf('45.650.000'), 912);  // pis 913
+assert.equal(nfOf('60.000.000'), 1199); // pis 1.200: l'últim
+assert.equal(nfOf('4.505.000'), 900);   // pis 901: primer de la torre 76, sense x10
+const cost = built => towerNext({ nf: built, f: [], tv: 5000 }).cost;
+assert.equal(cost(911), 4560000); assert.equal(cost(912), 45650000); assert.equal(cost(1199), 60000000);
+let cum = 0; for (let b = 0; b < 1200; b++) { cum += cost(b); if (b === 11) assert.equal(cum, 390000); if (b === 899) assert.equal(cum, 2027250000); if (b === 911) assert.equal(cum, 2081640000); }
+assert.equal(cum, 17295240000);  // acumulat fins al pis 1.200, com diu la taula
 assert.equal(pdSumrare('vlarac\n Krabby x2\n100 / 1.025 - Page 1 / 10'), null);  // una pàgina del $pd no és el sumrare
 assert.equal(pdSumrare('Castle 5/8'), null);
 console.log('millores: totes les proves passen');

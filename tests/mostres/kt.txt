@@ -1,0 +1,6 @@
+Gasta tupara armar los 12 pisos de la torre:
+Tu nivel actual es
+El siguiente nivel cuesta 40.000
+Tienes 615
+Arma un piso usando $build <numero del beneficio>
+ [1]  +2 espacios en la lista de deseos
