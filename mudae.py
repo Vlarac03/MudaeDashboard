@@ -497,14 +497,16 @@ def write_excel(d):
                 if c.font.name != F:
                     c.font = Font(name=F, bold=c.font.bold, color=c.font.color, size=c.font.size)
     wb.calculation = CalcProperties(fullCalcOnLoad=True)  # openpyxl no desa resultats: Excel els calcula en obrir
-    tmp = XLSX.with_suffix(".tmp")  # es desa a part i després es canvia: un error a mig desar no fa malbé l'Excel bo
+    # es desa a part i després es canvia: un error a mig desar no fa malbé l'Excel bo.
+    # Acaba en .xlsx: l'antivirus o OneDrive s'enduen els ".tmp" abans del canvi (FileNotFoundError).
+    tmp = XLSX.with_name(XLSX.stem + ".nou.xlsx")
     try:
-        wb.save(tmp)
         for intent in range(6):  # l'antivirus o l'indexador de Windows bloquegen el fitxer un instant
             try:
+                wb.save(tmp)
                 os.replace(tmp, XLSX)
                 break
-            except PermissionError:
+            except (PermissionError, FileNotFoundError):
                 if intent == 5:
                     raise
                 time.sleep(0.5)
