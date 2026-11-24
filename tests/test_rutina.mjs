@@ -42,7 +42,7 @@ assert.equal(t.lastClaim(at(29, 9, 0)), at(29, 8, 2));
 // del $tu: d'aquí quant es reinicien el reclam i les tirades
 assert.deepEqual(t.readResets('jo, no puedes reclamar hasta dentro de 2h 18 min.\nTienes 0 rolls restantes.\nEl siguiente reinicio será en 18 min.\nSiguiente reinicio de $daily en 19h 52 min.'), { claim: 138, roll: 18 });
 assert.deepEqual(t.readResets('jo, you can claim right now! The next claim reset is in 1h 14 min.\nYou have 8 rolls left. Next rolls reset in 18 min.'), { claim: 74, roll: 18 });
-// $settings de Victor (01/11/2026): cada quant hi ha reclam i el minut dels reinicis
+// $settings de Vlarac (01/11/2026): cada quant hi ha reclam i el minut dels reinicis
 const settings = sample('settings');
 assert.deepEqual(t.readSettings(settings), { iv: 180, m: 2 });
 assert.deepEqual(t.readSettings('Claim reset: every 2h ($setclaim)'), { iv: 120, m: null });  // en anglès: suposat
@@ -59,7 +59,7 @@ assert.deepEqual(readTu("You have 0 rolls left.\n$rt is not ready"), { rolls: tr
 assert.deepEqual(readTu('Hola'), {});
 // el Pokéslot ($p): format suposat, sense cap $tu real que en parli
 assert.deepEqual(readTu('You can use $p in 1h 10 min.\nYou have 0 rolls left.'), { p: 70, rolls: true, tu: true });
-assert.deepEqual(readTu('Tiempo restante antes de su próximo $p: 42 min.'), { p: 42, tu: true });  // el $p en espera (de Victor, 31/10/2026)
+assert.deepEqual(readTu('Tiempo restante antes de su próximo $p: 42 min.'), { p: 42, tu: true });  // el $p en espera (de Vlarac, 31/10/2026)
 // el poder de kakera, per a la notificació de les tirades
 const readPower = new Function(js.match(/function readPower[\s\S]*?\n}\n/)[0].replaceAll('\\\\', '\\') + 'return readPower;')();
 assert.deepEqual(readPower(tuEs), { p: 110, c: 36, h: 18 });
@@ -69,7 +69,7 @@ assert.equal(readPower(tuEn), null);
 // el $settings no s'ha de confondre amb el $tu (la casella d'Avui mira primer si és un $tu: cal reclam i tirades)
 const tuS = readTu(settings);
 assert.ok(!(('claim' in tuS || 'rolls' in tuS) && Object.keys(tuS).length > 2), JSON.stringify(tuS));
-// el $opz (Victor, 01/11/2026) tampoc no és un $tu, encara que parli del $oh
+// el $opz (Vlarac, 01/11/2026) tampoc no és un $tu, encara que parli del $oh
 const tuO = readTu('Tienes 145\nHarry Potter\n[LVL 0] Si no está reclamado, el personaje tendrá protección de deseos.\n[MAX] El primer $oh del día genera +20 spheres y tiene un +1% de probabilidad de otorgar 1 $oq');
 assert.ok(!('claim' in tuO || 'rolls' in tuO), JSON.stringify(tuO));
 // la cua de «Què toca ara»: a «Després», el que torna abans primer, i el que no sabem quan torna (Infinity), al final
@@ -78,13 +78,13 @@ assert.deepEqual([5, Infinity, 1, Infinity, 3].map(back => ({ back })).sort(byBa
 // les tasques marcades abans de l'01/11/2026 (r0, r1…) passen al nom nou
 const OLD = new Function(js.match(/const OLD = [^\n]*/)[0] + 'return OLD;')();
 assert.equal(OLD.r5, 'rolls'); assert.equal(OLD.r8, 'claim'); assert.equal(OLD.r17, 'p');
-// «Totes les teves sèries» per grups: Mudae contesta 1.000 personatges com a molt (amic de Victor, 02/11/2026)
+// «Totes les teves sèries» per grups: Mudae contesta 1.000 personatges com a molt (amic de Vlarac, 02/11/2026)
 const upd = py.match(/JS_UPD = r"""([\s\S]*?)"""/)[1];
 const groupsOf = (ALL, SIZES, nw, SOURCES = {}) => new Function('ALL', 'SIZES', 'newSeries', 'SOURCES', upd.match(/function groups[\s\S]*?\n}\n/)[0] + 'return groups();')(ALL, SIZES, () => nw, SOURCES);
-// les especials, per la sèrie d'on surten (Victor, 07/11/2026): sense mida, al davant com les noves; amb mida, amb les teves
+// les especials, per la sèrie d'on surten (Vlarac, 07/11/2026): sense mida, al davant com les noves; amb mida, amb les teves
 assert.deepEqual(groupsOf(['Castle'], { Castle: 12 }, [], { "Howl's Moving Castle": [0, 'Studio Ghibli'], Ponyo: [30, 'Studio Ghibli'] }),
   [["Howl's Moving Castle"], ['Ponyo', 'Castle']]);
-assert.deepEqual(groupsOf(['Castle', 'Pingu'], { Castle: 12, Pingu: 7 }, []), [['Castle', 'Pingu']]);  // les de Victor: una sola ordre
+assert.deepEqual(groupsOf(['Castle', 'Pingu'], { Castle: 12, Pingu: 7 }, []), [['Castle', 'Pingu']]);  // les de Vlarac: una sola ordre
 const nw = Array.from({ length: 19 }, (_, i) => 'S' + i);
 assert.deepEqual(groupsOf([], {}, nw).map(g => g.length), [8, 8, 3]);  // les noves, de 8 en 8 i en l'ordre escrit
 const big = { A: 600, B: 500, C: 450, D: 40, E: 30, F: 20, G: 1200 };
@@ -93,7 +93,7 @@ assert.deepEqual(gs[0], ['Nova']);
 assert.deepEqual(gs.flat().sort(), ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'Nova']);
 for (const g of gs.slice(1)) assert.ok(g.length <= 8 && (g.length === 1 || g.reduce((t, s) => t + big[s], 0) <= 1000), g.join());
 assert.ok(!gs.some(g => g.includes('A') && g.includes('B')));  // les grans, en grups diferents
-// el $bonus d'un amic de Victor (02/11/2026) porta «claims = 30» i el $rt: no s'ha de prendre per un $tu
+// el $bonus d'un amic de Vlarac (02/11/2026) porta «claims = 30» i el $rt: no s'ha de prendre per un $tu
 const paste = py.match(/JS_PASTE = r"""([\s\S]*?)"""/)[1];
 const bonusLike = new Function('text', paste.match(/const bonusLike = [^\n]*/)[0] + '\nreturn bonusLike;');
 const bonusAmic = sample('bonusAmic');

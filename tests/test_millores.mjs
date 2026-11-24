@@ -18,7 +18,7 @@ assert.deepEqual(readMudae(k, 5000), { b: { Bronze: 4, Silver: 4, Gold: 4, Sapph
 // un servidor amb altres preus ($badgevalue) i el Ruby IV, que ja ve descomptat al $k: el preu per nivell es desa sense descompte
 assert.deepEqual(readMudae('Tienes 10!\n Ruby IV · ¡Máximo alcanzado!\n Emerald · 1.500\n Diamond II · 4.500\nDesbloquea un nivel con $bronze', 5000).bp,
   { Emerald: 2000, Diamond: 2000 });
-// el $k de Victor (30/10/2026): totes al IV
+// el $k de Vlarac (30/10/2026): totes al IV
 const kMax = `Tienes 6.221!\nConvierte tu kakera en insignias de poder:\n` + BADGES.map(([n]) => ` ${n} IV · ¡Máximo alcanzado!`).join('\n') + `\nDesbloquea un nivel con $bronze, $silver...`;
 assert.deepEqual(readMudae(kMax, 5000), { b: Object.fromEntries(BADGES.map(([n]) => [n, 4])), bp: {}, k: 6221 });
 // $mmy=: els personatges amb claus, de més a menys
@@ -31,7 +31,7 @@ const kt = sample('kt');
 assert.deepEqual(readMudae(kt, 5000), { ktCost: 40000, nf: 7, k: 615 });
 assert.deepEqual(readMudae(kt.replace('cuesta 40.000', 'costs 80,000'), 10000), { ktCost: 80000, nf: 7, k: 615 });
 assert.deepEqual(readMudae(kt, null), { ktCost: 40000, k: 615 });  // sense el preu base de la torre, no sabem quants pisos tens
-// el $kt sencer d'un amic de Victor (02/11/2026): «+1 torre», el preu per pis i una marca als pisos fets (17 = 12 + 5; 90.000 = 5.000 × 18)
+// el $kt sencer d'un amic de Vlarac (02/11/2026): «+1 torre», el preu per pis i una marca als pisos fets (17 = 12 + 5; 90.000 = 5.000 × 18)
 const ktFull = sample('ktFull');
 assert.deepEqual(readMudae(ktFull, 7000), { ktCost: 90000, tv: 5000, t: 1, f: [2, 7, 8, 10, 11], nf: 17, k: 29511 });  // el preu per pis del $kt mana
 // el $kt sencer a la casella d'Avui no és un $tu (parla de «+1 roll por hora» i del $dk: abans marcava les tirades i el $dk)
@@ -39,11 +39,11 @@ const paste = py.match(/JS_PASTE = r"""([\s\S]*?)"""/)[1];
 const notTu = new Function('text', paste.match(/const bonusLike = [^\n]*/)[0] + '\nreturn bonusLike;');
 assert.equal(notTu(ktFull), true);
 assert.equal(notTu('Tienes 0 rolls.\nPuedes reclamar ahora.'), false);
-// el $kt d'un jugador amb 10 pisos (Victor, 21/11/2026): codis d'emoji enganxats al text («es:tow10:», «Tienes 22.551:kakera:»)
+// el $kt d'un jugador amb 10 pisos (Vlarac, 21/11/2026): codis d'emoji enganxats al text («es:tow10:», «Tienes 22.551:kakera:»)
 const kt10 = sample('kt10pisos');
 assert.deepEqual(readMudae(kt10, null), { ktCost: 55000, tv: 5000, t: 0, f: [1, 2, 4, 5, 6, 7, 8, 9, 10, 11], nf: 10, k: 22551 });
 assert.equal(notTu(kt10), true);  // tampoc no és un $tu: parla de «+1 roll por hora»
-// el $kt d'un amic de Victor (21/11/2026): torre 2 amb 8 pisos; 105.000 = 5.000 × 21, i les 8 marques ho confirmen
+// el $kt d'un amic de Vlarac (21/11/2026): torre 2 amb 8 pisos; 105.000 = 5.000 × 21, i les 8 marques ho confirmen
 const kt20 = sample('kt20pisos');
 assert.deepEqual(readMudae(kt20, null), { ktCost: 105000, tv: 5000, t: 1, f: [1, 2, 4, 5, 6, 7, 8, 11], nf: 20, k: 11129 });
 assert.equal(notTu(kt20), true);
@@ -71,10 +71,10 @@ assert.equal(readMudae('Next level cost: 40,000\nYou have 615\nBuild a floor wit
 
 const opp = sample('opp');
 assert.deepEqual(readMudae(opp, 5000), { opp: { name: 'Harry Potter', levels: [2, 0, 0, 6, 0, 0, 0, 0, 0, 1] }, sp: 1780 });
-// el $opp de debò (Victor, 30/10/2026): al màxim posa [MAX], no [LVL 1]
+// el $opp de debò (Vlarac, 30/10/2026): al màxim posa [MAX], no [LVL 1]
 const oppMax = sample('oppMax');
 assert.deepEqual(readMudae(oppMax, 5000), { opp: { name: 'Harry Potter', levels: [0, 0, 6, 0, 0, 0, 0, 0, 0, 1] }, sp: 1725 });
-// el $opz de Victor (01/11/2026): els personatges amb esferes, un per pàgina, amb el mateix format que el $opp
+// el $opz de Vlarac (01/11/2026): els personatges amb esferes, un per pàgina, amb el mateix format que el $opp
 const opz = sample('opz');
 assert.deepEqual(readMudae(opz, 5000), { opp: { name: 'Harry Potter', levels: [0, 0, 0, 0, 0, 0, 0, 0, 0, 1] }, sp: 145 });
 const fn = name => js.match(new RegExp(`function ${name}[\\s\\S]*?\\n}\\n`))[0];
@@ -82,7 +82,7 @@ const fn = name => js.match(new RegExp(`function ${name}[\\s\\S]*?\\n}\\n`))[0];
 const os = sample('os');
 assert.deepEqual(readMudae(os, 5000), { shop: [0, 3, 0, 0, 0, 0, 0, 0, 0, 10], sp: 1725 });
 assert.equal(readMudae(os.replace('[LVL 3]', '[MAX]'), 5000).shop[1], 10);
-// $or et torna el 90 % del que hi has posat: l'Harry Potter de Victor (01/11/2026), millora 4 al LVL 4 i la 10 → 3.000, et torna 2.700
+// $or et torna el 90 % del que hi has posat: l'Harry Potter de Vlarac (01/11/2026), millora 4 al LVL 4 i la 10 → 3.000, et torna 2.700
 const refundPlan = new Function([costs, js.match(/const spent = [^\n]*/)[0], fn('refundPlan')].join('\n') + 'return refundPlan;')();
 const lv = o => Array.from({ length: 10 }, (_, i) => o[i + 1] || 0);
 assert.deepEqual(refundPlan(lv({ 4: 4, 10: 1 })), { total: 3000, back: 2700, free: 1700 });  // hi tornes la 10 i en queden 1.700
@@ -102,7 +102,7 @@ const cheapestBuys = new Function(costs + '\n' + fn('cheapestBuys') + 'return ch
 assert.deepEqual(cheapestBuys([0, 0, 0, 0], [2, 4], shopMax, shopCost), [{ n: 2, l: 1, cost: 4000 }, { n: 4, l: 1, cost: 4000 }, { n: 2, l: 2, cost: 8000 }]);
 assert.deepEqual(cheapestBuys([0, 3, 0, 0], [2, 4], shopMax, shopCost, 2), [{ n: 4, l: 1, cost: 4000 }, { n: 4, l: 2, cost: 8000 }]);
 
-// $bonus de Victor (01/11/2026), dues pàgines («1.» i «2.»): una línia per bonus, i el que en fa servir el tauler
+// $bonus de Vlarac (01/11/2026), dues pàgines («1.» i «2.»): una línia per bonus, i el que en fa servir el tauler
 const bonus = sample('bonus');
 const B = readMudae(bonus + '\n · Espacios de lista de deseos: +8 (6 $k + 0 $kl + 2 $kt)\n · Espacios de Starwish: +0 (0 $kl + 0 $sw)', 5000).bonus;
 assert.equal(B.length, 10);
@@ -110,9 +110,9 @@ assert.deepEqual(B[0], ['Rolls por hora', '+8 (6 $k + 1 $kl + 1 $kt)']);
 assert.deepEqual(B[6], ['Probabilidad de obtener una llave adicional en deseos', '+10% ($kt)']);
 assert.deepEqual(readMudae(bonus.replaceAll('·', '•'), 5000).bonus.slice(0, 1), [['Rolls por hora', '+8 (6 $k + 1 $kl + 1 $kt)']]);  // amb • en lloc de ·
 assert.equal(readMudae('Bonos del Jugador\n$limroul $kl', 5000).bonus, undefined);
-// un tros del $bonus sense capçalera ni $limroul (d'un amic de Victor): 3 línies o més amb «($kt)», «(6 $k + …)»
+// un tros del $bonus sense capçalera ni $limroul (d'un amic de Vlarac): 3 línies o més amb «($kt)», «(6 $k + …)»
 assert.deepEqual(readMudae(' · Rolls por hora: +8 (6 $k + 0 $kl + 2 $kt)\n · Poder máximo de Kakera: 115% ($kt)\n · Tiempo de espera para $rt: 20h (-30h $k -0h $kl)', 5000).bonus.length, 3);  // cap línia entesa: no desa un $bonus buit
-// les dues pàgines del $bonus, cadascuna sola (Victor, 01/11/2026: la 2 sola no s'entenia), i ajuntades
+// les dues pàgines del $bonus, cadascuna sola (Vlarac, 01/11/2026: la 2 sola no s'entenia), i ajuntades
 const [pg1, pg2] = bonus.split('\n2. ');
 assert.equal(readMudae(pg1, 5000).bonus.length, 6);
 assert.deepEqual(readMudae('2. ' + pg2, 5000).bonus.map(([l]) => l), ['Probabilidad de obtener una llave adicional en deseos', '$oh bono diario']);
@@ -124,14 +124,14 @@ assert.equal(mergeBonus(both, [['$oh bono diario', '+80 spheres']]).find(([l]) =
 const k1 = readMudae('Hello Kitty ·  (12)\nLanie Parish ·  (1)\nPágina 1/2', 5000).keys, k2 = readMudae('Rui (HOHD) ·  (3)\nLanie Parish ·  (2)\nPágina 2/2', 5000).keys;
 assert.deepEqual(mergeBonus(k1, k2).sort((a, b) => b[1] - a[1]), [['Hello Kitty', 12], ['Rui (HOHD)', 3], ['Lanie Parish', 2]]);
 assert.equal(readMudae('[LVL 3] Una megasphere tiene un 1/50\n · Megaspheres: 0', 5000).bonus, undefined);  // el $os no és el $bonus
-// el $bonus tal com surt en copiar-lo de Discord (Victor, 01/11/2026): cada línia comença amb el codi de l'emoji
+// el $bonus tal com surt en copiar-lo de Discord (Vlarac, 01/11/2026): cada línia comença amb el codi de l'emoji
 const clip = sample('clip');
 const noEmoji = new Function(js.match(/const noEmoji = [^\n]*/)[0] + '\nreturn noEmoji;')();
 assert.equal(readMudae(clip, 5000).bonus, undefined);  // sense treure els emojis, no se n'entén cap línia
 assert.equal(readMudae(noEmoji(clip), 5000).bonus.length, 21);
 assert.equal(noEmoji(' <:sp:123> · Capital: 1.725 :sp:'), ' · Capital: 1.725 :sp:');  // només el del principi de la línia
 const bonusFacts = new Function(fn('bonusFacts') + 'return bonusFacts;')();
-assert.deepEqual(bonusFacts(B), { pmax: 110, pcost: 36, oh: 40, rt: 20, wl: 8 });  // 7 de base + 8 = els 15 de Victor
+assert.deepEqual(bonusFacts(B), { pmax: 110, pcost: 36, oh: 40, rt: 20, wl: 8 });  // 7 de base + 8 = els 15 de Vlarac
 assert.deepEqual(bonusFacts(readMudae(noEmoji(clip), 5000).bonus), { pmax: 110, pcost: 36, oh: 80, rt: 20, wl: 8 });
 assert.deepEqual(bonusFacts(undefined), { pmax: null, pcost: null, oh: null, rt: null, wl: null });
 assert.deepEqual(readMudae('Hola, això no és de Mudae', 5000), {});
@@ -190,15 +190,15 @@ assert.deepEqual(detect('Kate Beckett - Castle\nPingu - Pingu\n'), { kind: 'hare
 assert.deepEqual(detect('1. Harry Potter 2/4\n\nHP\n\nDobby  💞 => pep\nWinky\n'), { kind: 'serie', serie: 'Harry Potter' });
 assert.deepEqual(detect('Hola'), {});
 
-// Pokédex: el $pd sumrare de Victor (31/10/2026), quants en té de cada raresa en un sol missatge
+// Pokédex: el $pd sumrare de Vlarac (31/10/2026), quants en té de cada raresa en un sol missatge
 const pdJs = py.match(/JS_PD = r"""([\s\S]*?)"""/)[1];
 const pdSumrare = new Function([pdJs.match(/const pdNum[^\n]*/)[0], pdJs.match(/function pdSumrare[\s\S]*?\n}\n/)[0]].join('\n') + 'return pdSumrare;')();
 assert.deepEqual(pdSumrare('vlarac\n\n5 (1/90)\n\n4 (1/165)\n\n3 (8/337)\n\n2 (15/225)\n\n1 (75/177)\n100 / 1.025'),
   { rare: { 1: [75, 177], 2: [15, 225], 3: [8, 337], 4: [1, 165], 5: [1, 90] }, have: 100, total: 1025 });
-// tal com surt copiat de Discord, amb l'emoji 🌟 i la línia «Imagen» (de Victor, 31/10/2026)
+// tal com surt copiat de Discord, amb l'emoji 🌟 i la línia «Imagen» (de Vlarac, 31/10/2026)
 assert.deepEqual(pdSumrare('Mudae\nAPP\n — 12:33\n\nvlarac\n\n5🌟 (1/90)\n\n4🌟 (1/165)\n\n3🌟 (8/337)\n\n2🌟 (15/225)\n\n1🌟 (75/177)\nImagen\n100 / 1.025'),
   { rare: { 1: [75, 177], 2: [15, 225], 3: [8, 337], 4: [1, 165], 5: [1, 90] }, have: 100, total: 1025 });
-// el d'un amic de Victor (02/11/2026): també «Paradox», i l'emoji pot venir com a codi
+// el d'un amic de Vlarac (02/11/2026): també «Paradox», i l'emoji pot venir com a codi
 assert.deepEqual(pdSumrare('ggezw\n\nParadox:sunny: (1/20)\n\n4:sunny: (11/165)\n\n3:sunny: (21/337)\n\n2☀️ (58/225)\n\n1<:pdstar:123456789> (150/177)\n241 / 1.025'),
   { rare: { P: [1, 20], 4: [11, 165], 3: [21, 337], 2: [58, 225], 1: [150, 177] }, have: 241, total: 1025 });
 // una altra raresa amb nom (wiki: la fila 6 són les ultraentitats i les paradoxes), amb l'emoji darrere
@@ -207,7 +207,7 @@ assert.deepEqual(pdSumrare('UB (2/11)\nMítico (4/22)\n5 (3/90)\n300 / 1.025').r
 // torre sense marques, de la 77 en amunt: el preu va x10 (wiki «Kakera Tower/Prices»): pis 951 → 952 × 5.000 × 10
 assert.equal(readMudae('El siguiente nivel cuesta 47.600.000\nTienes 5\nArma un piso usando $build <n>', 5000).nf, 951);
 assert.equal(readMudae('El siguiente nivel cuesta 4.500.000\nTienes 5\nArma un piso usando $build <n>', 5000).nf, 899);  // torre 75: encara sense x10
-// la taula de la wiki (Victor, 21/11/2026): el pis N costa 5.000 × N fins al 912 (torre 76 sencera); el 913, el primer de la torre 77, 45.650.000
+// la taula de la wiki (Vlarac, 21/11/2026): el pis N costa 5.000 × N fins al 912 (torre 76 sencera); el 913, el primer de la torre 77, 45.650.000
 const nfOf = c => readMudae(`El siguiente nivel cuesta ${c}\nTienes 5\nArma un piso usando $build <n>`, 5000).nf;
 assert.equal(nfOf('4.560.000'), 911);   // pis 912: l'últim sense x10
 assert.equal(nfOf('45.650.000'), 912);  // pis 913

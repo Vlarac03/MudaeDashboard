@@ -1,37 +1,20 @@
-<p align="center"><img src="assets/icona-256.png" alt="" width="72"></p>
+<p align="center"><img src="assets/icona-256.png" width="96" alt="Mudae Dashboard icon"></p>
 
-<h1 align="center">Mudae Dashboard</h1>
+# Mudae Dashboard
 
-<p align="center">Keep your <a href="https://mudae.net">Mudae</a> collections up to date without missing a roll.<br>
-<b>Download:</b> green <b>Code → Download ZIP</b> button at the top of this page.<br>
-<b>English</b> · <a href="README.ca.md">Català</a> · <a href="README.es.md">Español</a></p>
+**English** · [Català](README.ca.md) · [Español](README.es.md)
 
-![The Today tab: collection stats, the roll and claim clock, the paste box with its To do! list, and what to do now](assets/tauler.png)
+Keep your [Mudae](https://mudae.net) collections up to date without missing a roll.
 
-A dashboard that runs on your own computer for the Mudae Discord bot. You paste what Mudae sends you and it tracks your collections, wishlist and trades, tells you what to do each hour, helps you with the `$oc` and `$oq` sphere games and keeps an Excel workbook up to date. Available in English, Catalan and Spanish.
+A dashboard that runs on your own computer for the Mudae Discord bot: paste what Mudae sends you and it tracks your collections, wishlist and trades. Available in English, Catalan and Spanish.
 
-## Features
+<p align="center">
+  <img src="assets/tauler.png" width="280" alt="The Today tab with the roll and claim clock, the paste box and what to do now">
+  <img src="assets/col-leccions.png" width="280" alt="A collection album">
+  <img src="assets/cercador.png" width="280" alt="Who to ask and the gift search">
+</p>
 
-- **Tabs in the order you use them**: Today, Collections, Wishlist, Trades, Upgrades and Update. The roll and claim clock stays above the tabs, alerts take you to the tab where you fix them, and long sections fold away and stay open or closed the way you left them.
-- **One box for everything**: paste any Mudae message at the top of the Today tab (`$tu`, `$settings`, `$bonus`, `$k`, `$kt`, `$opp`, `$opz`, `$os`, `$mmy=`, `$mma+s`, `$wl`, `$imaso`…) and the dashboard reads it as soon as you paste it, with no button, and sends it where it belongs. Under it, a copy button for each command it understands and a **To do!** box with the commands it still needs: nothing that depends on your server or on you is assumed (roll and claim times, `$rt` hours, wishlist slots, badge and tower prices). Harem, wishlist and series are saved straight away; a new series or a custom collection waits in «Update» for you to check it.
-- **What to do now**: paste your `$tu` and the checklist ticks itself, Pokéslot (`$p`) included. It works like a queue: «Now» shows only what you can do, most important first (the claim on top when you can claim, then the hourly rolls and kakera, then once-a-day tasks and the spares you keep for when you need them: `$rt`, `$dk`), what you've done hides until you can do it again, and a «Status» box says yes or no for claim, rolls, kakera (with how many reactions your power gives), Pokéslot, `$rt` and `$dk`, and when each comes back (`$daily` and `$dk` every 20 h, `$vote` every 12 h, `$oh` at midnight UTC, rolls at your server's minute…). The roll minute and the next claim come from your `$tu`, how often claims reset from `$settings`, and the `$rt` hours from `$bonus`.
-- **Notifications**: while the dashboard is open, it tells you when your rolls are back (and whether you can claim and react to kakera), and when your claim, `$daily`, `$vote`, `$dk`, `$rt` or `$p` are ready again. They beep and stay on screen until you close them. Turn them on and off with the **Notifications** button at the top.
-- **`$oc` helper**: mark the colors that appear and it tells you which square to click to find the red sphere. It's folded on the Today tab: open it with a click.
-- **`$oq` helper**: mark the colors that appear (each one says how many purple spheres it touches) and it shows the chance of purple on every hidden square and which one to click to find 3 purple ones. Folded next to the `$oc` helper.
-- **Collections**: one album per series with your characters, the free ones, the ones on your wishlist and the ones other players own (and who). Click the ones you get to mark them as yours.
-- **What to roll (`$h`, `$w` or `$m`)**: in «Catch up» choose Men, Women and Both and paste the reply to `$imaa+osh= Series 1 $ Series 2`, `$imaa+osw= …` and `$imaa+oswh …` (only once: gender doesn't change). On Today, the «What to roll» card says whether to roll men, women or mixed to complete series, to farm keys (where you own the larger share) or by the X characters you have the most keys on (`$mmy=`), for all series or one. In Collections, each series shows the detail.
-- **Custom collections**: a group you pick, even if it isn't a Mudae series (for example, the Eevees from the Pokédex). Type its name and characters, and the `$imaso` of the series they come from fills in who owns each one.
-- **Pokédex**: paste your `$pd sumrare` (one message) and see how many Pokémon you have of each rarity. Pasting the «time left before your next `$p`» message ticks the Pokéslot task.
-- **Upgrades**: paste your `$k`, `$kt`, `$opp <character>`, `$os`, `$mmy=` or `$bonus` and it tells you which badge, tower floor, sphere perk and sphere shop upgrade to get next, and how much kakera you still need. The `$bonus` adds a summary: how many kakera buttons a full power bar covers, the spheres your first `$oh` gives, your `$rt` hours and your wishlist slots. Prices only come from what you paste (`$k`, `$kt`), since each server sets its own. For spheres: perk 10 first on every character you keep (up to 100), perks 1-9 only on the ones you roll often, a `$or` refund plan when it pays off, and it tells you when to stop and move to the sphere shop. Its paste box works like the Today one. When you can afford the next recommended badge, tower floor or sphere upgrade (with the kakera and spheres from your last `$tu`), the Today tab tells you at the top, with a button that takes you to that card. Each recommendation has a **Done** button (with **Undo**): it records the new level and takes the cost off your kakera or spheres, so you don't have to paste again. After every paste it tells you what it understood, and it warns you when something you pasted is over a week old.
-- **Wishlist**: warns you about characters you already own or someone else claimed, and builds the `$wishremove` and `$wish` commands for you.
-- **Trades and gifts**: the `$give` command for each player, and a search box that understands misspelled series lists («full metal alchimist», «Rezero»…).
-- **Update**: paste your `$mma+s` (your harem, with each character's series), `$wl` or an `$imaso` and it's saved as soon as you paste it (a new series or a custom collection waits for you to check it and click the button). It reminds you if your harem is more than a week old. A **Backup** box downloads what the dashboard remembers in your browser (Upgrades, clock, Pokédex…) and restores it, in case you clear the browser or switch.
-- **Common commands**: grouped by topic (rolls, claims, your collection, harem and profile, trades, spheres, tower, kakera, Pokéslot…), each group folded, with a search box («wish», «kakera»…), what each command does and a copy button.
-- **Excel**: the same in a spreadsheet, which keeps what you type in it (priorities, notes, trade status).
-
-| Collections | Trades and gifts |
-|---|---|
-| ![A collection album](assets/col-leccions.png) | ![Who to ask and the gift search](assets/cercador.png) |
+_Screenshots of the dashboard with sample data._
 
 ## Install (5 minutes)
 
@@ -47,51 +30,41 @@ A dashboard that runs on your own computer for the Mudae Discord bot. You paste 
 
 From then on, open the dashboard with the **Mudae** shortcut on your desktop.
 
-## Every day
+## Features
 
-- **What to do now** tells you what to do and when. Tick things as you do them.
-- **When you get a character**: in «Collections», choose the series, click it and click **They're mine**.
-- **When you give characters away**: in «Trades» → «Search my characters», find them, copy the `$give` command and, once Mudae confirms it, click **I've given them**.
-- **Once a week**: paste your `$mma+s` again in the Today box (the dashboard reminds you).
+- **Today tab:** paste any Mudae reply and a checklist shows what to do now.
+- **Roll and claim clock** with notifications when rolls, claim, `$daily`, `$vote`, `$dk`, `$rt` or `$p` are ready.
+- **`$oc` and `$oq` helpers:** they tell you which square to click in the sphere games.
+- **Collections:** one album per series, with the free characters and who owns the rest.
+- **Custom collections:** group any characters, even outside a Mudae series.
+- **Wishlist:** warns about characters you own or someone else claimed, and builds the commands.
+- **Trades and gifts:** builds the `$give` command and searches your characters.
+- **Upgrades:** tells you which badge, tower floor or sphere perk to get next.
+- **Pokédex:** counts your Pokémon by rarity.
+- **Excel:** the same data in a workbook that keeps your own notes.
+
+More detail, daily use, settings and troubleshooting in the [guide](docs/guide.md).
 
 ## Good to know
 
+- **Offline:** it doesn't connect to Discord or Mudae and needs no account. It only reads what you paste and saves it in the `dades/` folder.
 - **Close the Excel file** before using the dashboard buttons: it can't be saved while it's open.
-- The buttons use a small server that only listens on your own computer (`127.0.0.1`) and only accepts requests from the dashboard. It stops by itself a couple of minutes after you close the tab, or with **Stop the server** in the **···** menu at the top.
-- You can paste messages as they are: Discord headers, «Page 1 / 21» and numbering are ignored.
-- **New versions**: the **Refresh dashboard** button checks GitHub for a new version and, if you say yes, installs it. The `dades/` folder is not touched. (If your version is older than this button, download the ZIP once and copy its files over yours.)
-- **Lost the desktop shortcut?** The **···** menu at the top has **Create desktop shortcut**.
+- The buttons use a small server that only listens on your own computer (`127.0.0.1`). It stops by itself a couple of minutes after you close the tab.
 - **Don't delete the `lib` folder**: it has what the program needs to write the Excel file.
 
-## Your data
+## Project structure
 
-The dashboard doesn't connect to Discord or Mudae and doesn't need an account. It only reads what you paste and saves it in the `dades/` folder on your computer.
+<details>
+<summary>Files</summary>
 
-## Settings (`dades/config.json`)
-
-| Key | What it is |
-|---|---|
-| `usuari` | Your Mudae name. Set by `Configura.bat`. |
-| `idioma` | `en`, `es` or `ca`. Run `Configura.bat` again to change it. |
-| `servidor` | Optional: shown in the dashboard and Excel titles. |
-| `discord_id` | Optional: the number `$myid` gives you, so the `$give` commands you copy mention you properly. |
-| `preferits` | Optional: characters the dashboard suggests first when a wishlist slot frees up, for example `["Fawkes", "Howl"]`. |
-
-## Troubleshooting
-
-- **«Could not update»**: close the Excel file and open Mudae again.
-- **A button says «No connection» or «Button off»**: open the dashboard with the Mudae shortcut, not by opening `dashboard.html` directly.
-- **Windows says «Smart App Control blocked a file»** (or SmartScreen warns you) when opening a `.bat`: delete the folder, right-click the ZIP → Properties → **Unblock** and unzip it again (step 2).
-- **«Python 3.12 or newer is needed»** when opening `Configura.bat`: install Python (step 1) and try again.
-
-## How it's built
-
-- `mudae.py`: the whole program, using the Python standard library and openpyxl. Reads `dades/`, writes the Excel file and `dashboard.html`, and runs the local server.
-- `i18n.py`: Spanish and English texts (the Catalan text is the key).
-- `oc.html`: the `$oc` helper, with no dependencies.
-- `oq.html`: the `$oq` helper, with no dependencies.
-- `lib/`: openpyxl and et_xmlfile, bundled so it works without `pip install`.
-- `Configura.bat` / `Actualitza.bat`: first-time setup and the desktop shortcut.
+| File | What it does |
+| --- | --- |
+| `mudae.py` | the whole program, using the Python standard library and openpyxl. Reads `dades/`, writes the Excel file and `dashboard.html`, and runs the local server. |
+| `i18n.py` | Spanish and English texts (the Catalan text is the key). |
+| `oc.html` | the `$oc` helper, with no dependencies. |
+| `oq.html` | the `$oq` helper, with no dependencies. |
+| `lib/` | openpyxl and et_xmlfile, bundled so it works without `pip install`. |
+| `Configura.bat` / `Actualitza.bat` | first-time setup and the desktop shortcut. |
 
 Tests:
 
@@ -104,10 +77,18 @@ node tests/test_millores.mjs
 
 Missing translations: `python tools/textos.py`. Clean zip to share (no personal data): `python tools/fer_zip.py`.
 
-## License
+</details>
 
-[MIT](LICENSE) © 2026 Victor Lara (Vlarac).
+## Data and licences
 
-Fan project: not affiliated with or endorsed by Mudae or Discord.
+- Code: [MIT](LICENSE).
+- Bundled libraries: openpyxl and et_xmlfile, both MIT (licence texts in `lib/*.dist-info/`).
+- Fan project: not affiliated with or endorsed by Mudae or Discord, whose names are trademarks of their owners.
 
-<p align="center"><sub>Developed by <a href="https://github.com/Vlarac03">Vlarac</a></sub></p>
+## Version
+
+No numbered releases: the **Refresh dashboard** button installs the latest version from GitHub.
+
+---
+
+Developed by [Vlarac](https://github.com/Vlarac03)

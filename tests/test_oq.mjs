@@ -1,4 +1,4 @@
-// Proves de l'ajudant del $oq amb la partida de Victor (02/11/2026). Executa: node tests/test_oq.mjs
+// Proves de l'ajudant del $oq amb la partida de Vlarac (02/11/2026). Executa: node tests/test_oq.mjs
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 
@@ -27,7 +27,7 @@ assert.ok(solutions(b).some(s => PUR.every(p => s.has(p))));
 assert.equal(res.prob[at(5, 4)], 1);  // amb això, la f5c4 era segur porpra
 assert.equal(res.prob[at(5, 4)], Math.max(...res.prob.filter(x => x != null)));
 
-// Partida de Victor (04/11/2026): 3 porpres i la vermella (la 4a, que compta com a porpra per als colors)
+// Partida de Vlarac (04/11/2026): 3 porpres i la vermella (la 4a, que compta com a porpra per als colors)
 const P2 = [at(1, 1), at(2, 4), at(3, 4), at(5, 1)];
 b = Array(25).fill(null);
 for (const [r, c, col] of [[2, 2, 'teal'], [3, 1, 'blue'], [3, 3, 'green'], [4, 2, 'teal'], [1, 1, 'purple'], [2, 4, 'purple'], [3, 4, 'purple'], [5, 1, 'red']]) {

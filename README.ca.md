@@ -1,37 +1,20 @@
-<p align="center"><img src="assets/icona-256.png" alt="" width="72"></p>
+<p align="center"><img src="assets/icona-256.png" width="96" alt="Mudae Dashboard icon"></p>
 
-<h1 align="center">Tauler de Mudae</h1>
+# Mudae Dashboard
 
-<p align="center">Porta les teves col·leccions de <a href="https://mudae.net">Mudae</a> al dia, sense perdre cap tirada.<br>
-<b>Descarrega'l:</b> botó verd <b>Code → Download ZIP</b>, a dalt d'aquesta pàgina.<br>
-<a href="README.md">English</a> · <b>Català</b> · <a href="README.es.md">Español</a></p>
+[English](README.md) · **Català** · [Español](README.es.md)
 
-![La pestanya Avui: xifres de la col·lecció, el rellotge de tirades i reclam, la casella per enganxar amb el requadre Pendent!, i què toca ara](assets/tauler.png)
+Porta les teves col·leccions de [Mudae](https://mudae.net) al dia sense perdre cap tirada.
 
-Un tauler que funciona al teu ordinador per al bot de Discord Mudae. Hi enganxes el que t'envia Mudae i et porta les col·leccions, la wishlist i els intercanvis, et diu què toca fer a cada hora, t'ajuda amb els jocs d'esferes `$oc` i `$oq` i et manté al dia un Excel. En català, castellà i anglès.
+Un tauler que s'executa al teu ordinador per al bot de Discord Mudae: hi enganxes el que et diu Mudae i et porta les col·leccions, la wishlist i els intercanvis. Disponible en català, castellà i anglès.
 
-## Què fa
+<p align="center">
+  <img src="assets/tauler.png" width="280" alt="La pestanya Avui amb el rellotge de tirades i reclam, la casella d'enganxar i què toca ara">
+  <img src="assets/col-leccions.png" width="280" alt="Àlbum d'una col·lecció">
+  <img src="assets/cercador.png" width="280" alt="A qui demanar i el cercador de regals">
+</p>
 
-- **Pestanyes per ordre d'ús**: Avui, Col·leccions, Wishlist, Intercanvis, Millores i Posar al dia. El rellotge de tirades i reclam es veu des de totes, els avisos et porten a la pestanya on s'arreglen, i els blocs llargs es pleguen i es queden oberts o tancats com els vas deixar.
-- **Una sola casella per a tot**: a dalt de la pestanya Avui hi enganxes qualsevol missatge de Mudae (`$tu`, `$settings`, `$bonus`, `$k`, `$kt`, `$opp`, `$opz`, `$os`, `$mmy=`, `$mma+s`, `$wl`, `$imaso`…) i el tauler el llegeix així que l'enganxes, sense cap botó, i l'envia on toca. A sota hi ha un botó per copiar cada ordre que entén i un requadre **Pendent!** amb les ordres que encara li falten: no suposa res del que depèn del teu servidor o de tu (hores de tirades i reclams, hores del `$rt`, llocs de la wishlist, preus de les insígnies i de la torre). El harem, la wishlist i les sèries es desen de seguida; una sèrie nova o una col·lecció especial t'espera a «Posar al dia» perquè la comprovis.
-- **Què toca ara**: enganxes el `$tu` i la llista es marca sola, Pokéslot (`$p`) inclòs. Funciona com una cua: a «Ara» només hi ha el que pots fer, primer el més important (el reclam a dalt quan pots reclamar, després les tirades i la kakera de cada hora, el que és un cop al dia i els comodins que guardes per quan calguin: `$rt`, `$dk`), el que ja has fet s'amaga fins que el pots tornar a fer, i un requadre «Estat» et diu sí o no del reclam, les tirades, la kakera (amb quantes reaccions et dona el poder), el Pokéslot, el `$rt` i el `$dk`, i quan torna cada cosa (`$daily` i `$dk` cada 20 h, `$vote` cada 12 h, `$oh` a mitjanit UTC, tirades al minut del teu servidor…). El minut de les tirades i el pròxim reclam surten del `$tu`, cada quant hi ha reclam del `$settings` i les hores del `$rt` del `$bonus`.
-- **Notificacions**: mentre el tauler és obert, t'avisa quan tornes a tenir tirades (i et diu si pots reclamar i reaccionar a kakera), i quan tornes a tenir el reclam, el `$daily`, el `$vote`, el `$dk`, el `$rt` o el `$p`. Fan un so i es queden a la pantalla fins que les tanques. S'activen i es desactiven amb el botó **Notificacions** de dalt.
-- **Ajudant del `$oc`**: marques els colors que surten i et diu quina casella clicar per trobar la vermella. És plegat a la pestanya Avui: s'obre amb un clic.
-- **Ajudant del `$oq`**: marques els colors que surten (cadascun diu quantes porpres toca) i et mostra les possibilitats de porpra de cada casella amagada i quina clicar per trobar-ne 3. Plegat al costat de l'ajudant del `$oc`.
-- **Col·leccions**: un àlbum per sèrie amb els teus personatges, els lliures, els de la wishlist i els d'altres jugadors (i de qui són). Cliques els que aconsegueixes per marcar-los com a teus.
-- **Què tirar (`$h`, `$w` o `$m`)**: a «Posar al dia» tria Homes, Dones i Tots dos i enganxa la resposta de `$imaa+osh= Sèrie 1 $ Sèrie 2`, `$imaa+osw= …` i `$imaa+oswh …` (un sol cop: el gènere no canvia). A Avui, la targeta «Què tirar» diu si tirar homes, dones o mixt per completar sèries, per fer claus (on tens més proporció de personatges) o segons els X que tens amb més claus (`$mmy=`), per totes les sèries o per una. A Col·leccions, cada sèrie en mostra el detall.
-- **Col·leccions especials**: un grup que tries tu, encara que no sigui una sèrie de Mudae (per exemple, els Eevee de la Pokédex). Escrius el nom i els personatges, i el `$imaso` de la sèrie d'on surten t'hi posa de qui és cada un.
-- **Pokédex**: enganxes el `$pd sumrare` (un sol missatge) i veus quants Pokémon tens de cada raresa. Si enganxes el missatge del temps que falta per al pròxim `$p`, es marca la tasca del Pokéslot.
-- **Millores**: enganxes el `$k`, el `$kt`, un `$opp <personatge>`, el `$os`, el `$mmy=` o el `$bonus` i et diu quina insígnia, quin pis de la torre, quina millora d'esferes i quina de la botiga d'esferes et toca, i quanta kakera et falta. El `$bonus` hi afegeix un resum: quants botons de kakera fas amb el poder ple, les esferes del primer `$oh`, les hores del `$rt` i els llocs de la wishlist. Els preus només surten del que enganxes (`$k`, `$kt`), perquè cada servidor té els seus. Per a les esferes: primer la millora 10 a tots els personatges que no regalaràs (fins a 100), les 1-9 només als que et surten sovint, un pla amb el `$or` quan surt a compte, i et diu quan has de parar i passar a la botiga d'esferes. La seva casella funciona com la d'Avui. Quan pots pagar la insígnia, el pis de la torre o la millora d'esferes que et recomana (amb la kakera i les esferes del darrer `$tu`), la pestanya Avui t'ho diu a dalt, amb un botó que et porta a aquella targeta. Cada recomanació té un botó **Fet** (amb **Desfer**): apunta el nivell nou i descompta el que costa de la kakera o les esferes, sense tornar a enganxar. Després de cada enganxada et diu què ha entès, i t'avisa quan el que has enganxat té més d'una setmana.
-- **Wishlist**: t'avisa dels que ja són teus o que ha reclamat algú, i et prepara les ordres `$wishremove` i `$wish`.
-- **Intercanvis i regals**: l'ordre `$give` per a cada jugador, i un cercador que entén llistes de sèries mal escrites («full metal alchimist», «Rezero»…).
-- **Posar al dia**: enganxes el `$mma+s` (el teu harem, amb la sèrie de cada personatge), el `$wl` o un `$imaso` i es desa així que l'enganxes (una sèrie nova o una col·lecció especial t'espera perquè la comprovis i cliquis el botó). T'avisa si fa més d'una setmana que no poses al dia el harem. Una caixa de **Còpia de seguretat** baixa el que el tauler recorda al navegador (Millores, rellotge, Pokédex…) i ho restaura, per si esborres el navegador o en canvies.
-- **Ordres d'ús habitual**: per temes (tirades, reclamar, la teva col·lecció, harem i perfil, intercanvis, esferes, torre, kakera, Pokéslot…), cada grup plegat, amb un cercador («wish», «kakera»…), el que fa cada ordre i un botó de copiar.
-- **Excel**: el mateix en un full de càlcul, que respecta el que hi escrius (prioritats, notes, estat dels intercanvis).
-
-| Col·leccions | Intercanvis i regals |
-|---|---|
-| ![Àlbum d'una col·lecció](assets/col-leccions.png) | ![A qui demanar i el cercador per a regals](assets/cercador.png) |
+_Captures del tauler amb dades d'exemple._
 
 ## Instal·lació (5 minuts)
 
@@ -47,51 +30,41 @@ Un tauler que funciona al teu ordinador per al bot de Discord Mudae. Hi enganxes
 
 A partir d'aquí, obre el tauler amb l'accés directe **Mudae** de l'escriptori.
 
-## Cada dia
+## Funcions
 
-- **Què toca ara** et diu què fer i quan. Ves marcant el que fas.
-- **Quan aconsegueixis un personatge**: a «Col·leccions», tria la sèrie, clica'l i clica **Ja són meus**.
-- **Quan regalis**: a «Intercanvis» → «Buscar entre els meus», busca'ls, copia el `$give` i, quan Mudae ho confirmi, clica **Ja els he donat**.
-- **Un cop per setmana**: torna a enganxar el `$mma+s` a la casella d'Avui (el tauler t'avisa).
+- **Pestanya Avui:** enganxes qualsevol resposta de Mudae i una llista et diu què toca ara.
+- **Rellotge de tirades i reclam** amb avisos quan tornen les tirades, el reclam, el `$daily`, el `$vote`, el `$dk`, el `$rt` o el `$p`.
+- **Ajudants del `$oc` i el `$oq`:** et diuen quina casella clicar als jocs d'esferes.
+- **Col·leccions:** un àlbum per sèrie, amb els personatges lliures i qui té els altres.
+- **Col·leccions especials:** agrupa els personatges que vulguis, encara que no siguin d'una sèrie de Mudae.
+- **Wishlist:** t'avisa dels que ja són teus o que ha reclamat algú, i et prepara les ordres.
+- **Intercanvis i regals:** prepara l'ordre `$give` i busca entre els teus personatges.
+- **Millores:** et diu quina insígnia, pis de la torre o avantatge d'esferes comprar després.
+- **Pokédex:** compta els teus Pokémon per raresa.
+- **Excel:** el mateix en un full de càlcul que respecta les teves notes.
+
+Més detall, ús diari, configuració i problemes a la [guia](docs/guide.ca.md).
 
 ## Bo de saber
 
+- **Sense connexió:** no es connecta a Discord ni a Mudae i no demana cap compte. Només llegeix el que enganxes i ho desa a la carpeta `dades/`.
 - **Tanca l'Excel** abans de fer servir els botons del tauler: si és obert, no es pot desar.
-- Els botons fan servir un servidor petit que només escolta al teu ordinador (`127.0.0.1`) i només accepta peticions del tauler. Es tanca sol un parell de minuts després de tancar la pestanya, o amb **Tancar el servidor**, al menú **···** de dalt.
-- Pots enganxar els missatges tal qual: les capçaleres de Discord, «Page 1 / 21» i la numeració s'ignoren.
-- **Versions noves**: el botó **Actualitzar el tauler** mira si n'hi ha una a GitHub i, si li dius que sí, la posa sola. La carpeta `dades/` no es toca. (Si tens una versió d'abans d'aquest botó, baixa el ZIP un cop i copia'n els fitxers damunt dels teus.)
-- **Has perdut l'accés directe?** Al menú **···** de dalt hi ha **Crear accés directe a l'escriptori**.
+- Els botons fan servir un petit servidor que només escolta al teu ordinador (`127.0.0.1`). S'atura sol uns minuts després de tancar la pestanya.
 - **No esborris la carpeta `lib`**: hi ha el que necessita el programa per escriure l'Excel.
 
-## Les teves dades
+## Estructura del projecte
 
-El tauler no es connecta a Discord ni a Mudae i no demana cap compte. Només llegeix el que hi enganxes i ho desa a la carpeta `dades/`, al teu ordinador.
+<details>
+<summary>Fitxers</summary>
 
-## Configuració (`dades/config.json`)
-
-| Clau | Què és |
-|---|---|
-| `usuari` | El teu nom a Mudae. El posa `Configura.bat`. |
-| `idioma` | `ca`, `es` o `en`. Per canviar-lo, torna a obrir `Configura.bat`. |
-| `servidor` | Opcional: surt al títol del tauler i de l'Excel. |
-| `discord_id` | Opcional: el número que et dona `$myid`, perquè les ordres `$give` que copies et mencionin bé. |
-| `preferits` | Opcional: personatges que el tauler et proposa primer quan s'allibera un lloc a la wishlist, per exemple `["Fawkes", "Howl"]`. |
-
-## Si alguna cosa no va
-
-- **«Could not update»**: tanca l'Excel i torna a obrir Mudae.
-- **Un botó diu «Sense connexió» o «Botó apagat»**: obre el tauler amb l'accés directe Mudae, no obrint `dashboard.html` directament.
-- **Windows diu «Control intel·ligent d'aplicacions ha bloquejat un fitxer»** (o SmartScreen avisa) en obrir un `.bat`: esborra la carpeta, clic dret al ZIP → Propietats → **Desbloqueja** i torna'l a descomprimir (pas 2).
-- **«Python 3.12 or newer is needed»** en obrir `Configura.bat`: instal·la Python (pas 1) i torna-ho a provar.
-
-## Com està fet
-
-- `mudae.py`: tot el programa, amb la llibreria estàndard de Python i openpyxl. Llegeix `dades/`, escriu l'Excel i `dashboard.html`, i fa de servidor local.
-- `i18n.py`: els textos en castellà i anglès (el català fa de clau).
-- `oc.html`: l'ajudant del `$oc`, sense dependències.
-- `oq.html`: l'ajudant del `$oq`, sense dependències.
-- `lib/`: openpyxl i et_xmlfile, inclosos perquè funcioni sense `pip install`.
-- `Configura.bat` / `Actualitza.bat`: la primera configuració i l'accés directe.
+| Fitxer | Què fa |
+| --- | --- |
+| `mudae.py` | tot el programa, amb la llibreria estàndard de Python i openpyxl. Llegeix `dades/`, escriu l'Excel i `dashboard.html`, i fa de servidor local. |
+| `i18n.py` | els textos en castellà i anglès (el català fa de clau). |
+| `oc.html` | l'ajudant del `$oc`, sense dependències. |
+| `oq.html` | l'ajudant del `$oq`, sense dependències. |
+| `lib/` | openpyxl i et_xmlfile, inclosos perquè funcioni sense `pip install`. |
+| `Configura.bat` / `Actualitza.bat` | la primera configuració i l'accés directe. |
 
 Proves:
 
@@ -104,10 +77,18 @@ node tests/test_millores.mjs
 
 Textos sense traduir: `python tools/textos.py`. Un `.zip` net per passar-lo a algú (sense cap dada personal): `python tools/fer_zip.py`.
 
-## Llicència
+</details>
 
-[MIT](LICENSE) © 2026 Victor Lara (Vlarac).
+## Dades i llicències
 
-Projecte de fans: no està afiliat amb Mudae ni amb Discord, ni té el seu suport.
+- Codi: [MIT](LICENSE).
+- Llibreries incloses: openpyxl i et_xmlfile, totes dues MIT (els textos de llicència són a `lib/*.dist-info/`).
+- Projecte de fans: no té cap relació amb Mudae ni Discord, que no l'avalen; els seus noms són marques dels seus propietaris.
 
-<p align="center"><sub>Developed by <a href="https://github.com/Vlarac03">Vlarac</a></sub></p>
+## Versió
+
+No hi ha versions numerades: el botó **Actualitzar el tauler** instal·la l'última versió de GitHub.
+
+---
+
+Developed by [Vlarac](https://github.com/Vlarac03)

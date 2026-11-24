@@ -611,7 +611,7 @@ function learnResets(R, r, now) {
   return out;
 }
 // Del $settings: cada quant hi ha reclam en minuts (iv, de la línia del $setclaim, entre 60 i 600) i el minut dels reinicis (m, del $setinterval).
-// «· Reinicio de reclamos: Cada 180 min. ($setclaim)» i «· Minuto exacto de cada reinicio: xx:02 ($setinterval)» (de Victor, 01/11/2026). null si no hi és.
+// «· Reinicio de reclamos: Cada 180 min. ($setclaim)» i «· Minuto exacto de cada reinicio: xx:02 ($setinterval)» (de Vlarac, 01/11/2026). null si no hi és.
 function readSettings(text) {
   const ls = text.split(/\\r?\\n/), line = re => ls.find(l => re.test(l));
   const c = line(/\\$setclaim/i) || line(/reclam|claim/i), i = line(/\\$setinterval/i);
@@ -702,7 +702,7 @@ function place(s) {
   document.getElementById('nowNone').hidden = done.length < TASKS.length;
   document.getElementById('laterNone').hidden = done.length > 0;
   const fd = later.closest('details'), card = document.getElementById('doneCard'), all = done.length === TASKS.length;
-  if (all !== (fd.parentElement === card)) {  // tot fet: els Fets, oberts, a l'esquerra (Victor, 01/11/2026); si no, plegats sota l'Estat
+  if (all !== (fd.parentElement === card)) {  // tot fet: els Fets, oberts, a l'esquerra (Vlarac, 01/11/2026); si no, plegats sota l'Estat
     if (all) { card.append(fd); delete fd.dataset.fold; fd.open = true; }  // sense data-fold: obrir-lo aquí no es recorda
     else { document.getElementById('laterNone').before(fd); fd.dataset.fold = 'fets'; fd.open = foldOpen('fets'); }
   }
@@ -1009,7 +1009,7 @@ function show(s) {  // clicar la sèrie oberta la tanca
   draw();
   if (!album.hidden) album.scrollIntoView({ block: 'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
 }
-// en canviar de pestanya, la col·lecció oberta es tanca (Victor, 02/11/2026): en tornar, totes plegades
+// en canviar de pestanya, la col·lecció oberta es tanca (Vlarac, 02/11/2026): en tornar, totes plegades
 window.onVista = v => { if (v !== 'coll' && !album.hidden) { album.hidden = true; draw(); } };
 hide.onchange = () => { try { localStorage.setItem('mudae-hide', hide.checked ? '1' : '0'); } catch (e) {} draw(); };
 document.querySelectorAll('.row[data-serie]').forEach(r => {
@@ -1690,7 +1690,7 @@ function autoKind(newIfMissing) {
   syncUpd(); updMsg.innerHTML = '<span class="tag">' + esc(T('Detectat: {k}', { k: kindSel.selectedOptions[0].textContent })) + '</span>';
   return true;
 }
-// En enganxar, es desa sol si és segur (Victor, 01/11/2026): el harem, la wishlist, totes les sèries o una sèrie que ja tens.
+// En enganxar, es desa sol si és segur (Vlarac, 01/11/2026): el harem, la wishlist, totes les sèries o una sèrie que ja tens.
 // Una sèrie nova o una col·lecció especial (hi enganxes el $imaso d'una altra sèrie) les tries tu i cliques «Desar i actualitzar».
 function autoSave() {
   const d = detect(txt.value);
@@ -1756,10 +1756,10 @@ const perkMax = n => n <= 5 ? 6 : 1, perkCost = (n, l) => n <= 5 ? PCOST[l] : 10
 const shopMax = () => 10, shopCost = (n, l) => 4000 * (l + 1);
 // Taula de preus de la wiki («Kakera Tower/Prices»): el pis N costa preu base × N fins al 912 (la torre 76 sencera); del 913 (torre 77) al 1.200 (torre 100, la darrera), x10
 const X10_FROM = 76;  // torres acabades a partir de les quals el preu va x10
-const STALE_DAYS = 7;  // shortcut: llindar triat per Claude; canviar-lo si Victor en vol un altre
+const STALE_DAYS = 7;  // shortcut: llindar triat per Claude; canviar-lo si Vlarac en vol un altre
 // Després de la 10 (que té límit, no passa de 100 personatges): primer les que tornen esferes (9 i 5), després kakera i claus (4, 3, 2), la resta al final. Proposta de Claude.
 const POST10 = [9, 5, 4, 3, 2, 8, 1, 6, 7];
-const KEYS_OFTEN = 10;  // shortcut: llindar triat per Claude (una clau cada cop que et surt un personatge teu); canviar-lo si Victor en vol un altre
+const KEYS_OFTEN = 10;  // shortcut: llindar triat per Claude (una clau cada cop que et surt un personatge teu); canviar-lo si Vlarac en vol un altre
 const num = t => Number(String(t).replace(/[^\d]/g, ''));
 const fmtK = n => n.toLocaleString(document.documentElement.lang);
 // Què diu el text enganxat: kakera o esferes que tens, nivells d'insígnies, cost del pròxim pis, nivells de les esferes
@@ -1827,7 +1827,7 @@ function readMudae(text, tv) {
   return out;
 }
 // Del $bonus, el que fa servir el tauler: poder màxim i el que gasta cada botó de kakera, esferes del $oh i hores del $rt
-// shortcut: etiquetes en castellà (les de Victor) i en anglès suposat; mirar-ho amb un $bonus en anglès
+// shortcut: etiquetes en castellà (les de Vlarac) i en anglès suposat; mirar-ho amb un $bonus en anglès
 function bonusFacts(B) {
   const get = (label, value) => { const r = (B || []).find(([l]) => label.test(l)), m = r && r[1].match(value); return m ? +m[1] : null; };
   return { pmax: get(/m[aá]x.*kakera|kakera.*m[aá]x/i, /(\d+)\s*%/), pcost: get(/(?:cost|coût).*kakera/i, /(\d+)\s*%/),
@@ -1836,7 +1836,7 @@ function bonusFacts(B) {
 // Efectes de cada pis a la torre `t` (1 és la primera), de la wiki de Mudae («Kakera Tower/Perks»); null: com a la llista (la torre 1).
 // El que surt del $kt enganxat mana sobre això. Les torres de la 2 a la 100 canvien molts pisos: la 2 és igual a la del $kt d'un amic.
 const STARWISH = [50, 25, 20, 16, 13, 10, 8, 6, 5, 4, 3, 3, 2, 2, 2, 1, 1, 1, 1, 1];  // la wiki dona fins a la torre 20; després, +1 %
-// Ordre recomanat de cada pis segons la torre. Proposta de Claude amb la taula de la wiki (canviar-ho si Victor ho veu diferent):
+// Ordre recomanat de cada pis segons la torre. Proposta de Claude amb la taula de la wiki (canviar-ho si Vlarac ho veu diferent):
 // torres 1-4, el de sempre (-% de poder de reacció i poder màxim a dalt); 5-8, el 8 ja no abaixa el cost sinó que dona +250 de kakera vermella/arc de Sant Martí i el 12
 // dona +165 de kakera del caos; a la 9 el 5 passa a +0,5 % i va al final; a la 11 el 11 deixa de donar tirades i dona +30-50 % de kakera de Bronze IV i Silver IV;
 // a la 23 el 4 només dona +1 % de tercera clau i el 9 +50 de kakera.
@@ -3623,7 +3623,7 @@ def do_action(action, body):
     elif action == "refa":
         pass  # només tornar a fer el tauler i l'Excel (main() ho fa després de cada acció)
     elif action == "novetats":  # «Actualitzar el tauler»: quants fitxers han canviat a GitHub ("" si cap); el tauler es refà igualment
-        if (DIR / ".git").exists():  # una còpia de git (la de Victor): git pull sense barrejar res (--ff-only), i si ha baixat codi, el tauler es refà amb el nou
+        if (DIR / ".git").exists():  # una còpia de git (la de Vlarac): git pull sense barrejar res (--ff-only), i si ha baixat codi, el tauler es refà amb el nou
             import subprocess
             git = lambda *a: subprocess.run(["git", "-C", str(DIR), *a], capture_output=True, text=True, encoding="utf-8")
             try:

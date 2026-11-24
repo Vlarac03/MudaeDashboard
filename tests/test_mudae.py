@@ -163,14 +163,14 @@ class Desar(Base):
         self.assertEqual(got[("Pingu", "Pinga")], "")  # Pingu: n'hi havia 3 i n'han sortit 2, no es toca
         self.assertIn("Pingu (2 de 3)", warn)
 
-    def test_totes_les_series_amb_el_harem_barrejat(self):  # Victor (06/11/2026): el $mma+s dins la resposta duplicava els teus
+    def test_totes_les_series_amb_el_harem_barrejat(self):  # Vlarac (06/11/2026): el $mma+s dins la resposta duplicava els teus
         self.write("series/ABBA.txt", "Agnetha\nAgnetha 💞 => jo\nBenny\n")  # fitxer ja duplicat d'abans: compta 2, no 3
         self.assertEqual([(r["name"], r["owner"]) for r in mudae.read_series()], [("Agnetha", "jo"), ("Benny", "")])
         paste = "ABBA 1/2\n\nAgnetha - ABBA\nAgnetha  💞 => jo - ABBA\nBenny - ABBA\n"
         self.assertEqual(mudae.save_paste("totes", "", paste), "")
         self.assertEqual((self.tmp / "series/ABBA.txt").read_text(encoding="utf-8"), "Agnetha  💞 => jo\nBenny\n")
 
-    def test_especials_a_totes_les_series(self):  # Victor (07/11/2026): Studio Ghibli no hi entrava; Howl's Moving Castle, ni del harem
+    def test_especials_a_totes_les_series(self):  # Vlarac (07/11/2026): Studio Ghibli no hi entrava; Howl's Moving Castle, ni del harem
         self.write("especials.json", '["Ghibli", "Eevee"]')
         self.write("series/Ghibli.txt", "Ponyo\nCalcifer 💞 => algú\n")
         self.write("series/Eevee.txt", "Eevee\n")  # tota teva: no hi va (Pokédex en té 1.025)
@@ -187,7 +187,7 @@ class Desar(Base):
         self.assertIn("Calcifer 💞 => pep", (self.tmp / "series/Ghibli.txt").read_text(encoding="utf-8"))
         self.assertEqual(mudae.special_sources()["Ghibli"]["Ponyo"], 2)  # la mida, per fer els grups
 
-    def test_totes_les_series_de_zero(self):  # el $imaa+os de Victor (30/10/2026), retallat
+    def test_totes_les_series_de_zero(self):  # el $imaa+os de Vlarac (30/10/2026), retallat
         paste = ("-----\nThe Big Bang Theory + ABBA 3/6\n(bundle)\n\nAgnetha Fältskog => jo - ABBA\nBenny Andersson - ABBA\n"
                  "2. Sheldon Cooper - The Big Bang Theory\n\nPers. sin serie principal en este paquete:\n\n"
                  "Gellert Grindelwald - Fantastic Beasts\nMeemaw => pep - Young Sheldon\n")
@@ -203,7 +203,7 @@ class Desar(Base):
         got = {(r["serie"], r["name"]): r["owner"] for r in mudae.read_series()}
         self.assertEqual(got[("The Big Bang Theory", "Meemaw")], "pep")
 
-    def test_totes_les_series_amb_un_altre_nom(self):  # amic de Victor (02/11/2026): «Código Lyoko», i Mudae diu «Code Lyoko»
+    def test_totes_les_series_amb_un_altre_nom(self):  # amic de Vlarac (02/11/2026): «Código Lyoko», i Mudae diu «Code Lyoko»
         paste = ("-----\nCode Lyoko + Detective Conan 3/9\n(bundle)\n\nAelita => pep - Code Lyoko\nAnthéa Hopper - Code Lyoko\n"
                  "Conan Edogawa - Detective Conan\n\nPers. sin serie principal en este paquete:\n\nKaito Kuroba - Magic Kaito\n")
         warn = mudae.save_paste("totes", "", paste, ["Código Lyoko", "Detective Conan"])
@@ -219,7 +219,7 @@ class Desar(Base):
         self.write("wishlist.txt", "Hedwig\nPágina 1/2\nPàgina 2 / 2\nPage 1/2\n")
         self.assertEqual([n for n, _ in mudae.lines(self.tmp / "wishlist.txt")], ["Hedwig"])
 
-    def test_una_serie_amb_imaa(self):  # Victor (02/11/2026): a «Una sèrie», també el $imaa+os <sèrie>
+    def test_una_serie_amb_imaa(self):  # Vlarac (02/11/2026): a «Una sèrie», també el $imaa+os <sèrie>
         paste = ("Castle   2/4\n\nKate Beckett  💞 => vlarac - Castle\nKevin Ryan - Castle\nRichard Castle => pep - Castle\n\n"
                  "Pers. sin serie principal en este paquete:\n\nMartha Rodgers - Castle (2009)\n")
         mudae.save_paste("serie", "Castle", paste)
@@ -235,7 +235,7 @@ class Desar(Base):
         mudae.save_paste("harem", "", "Hedwig - HP\n")
         self.assertEqual([(r["name"], r["owner"]) for r in mudae.read_series()], [("Hedwig", "jo"), ("Dobby", "algú"), ("Winky", "pep")])
 
-    def test_harem_nou_mana_sobre_la_serie(self):  # Victor, 01/11/2026: reclames un de la wishlist i enganxes només el harem
+    def test_harem_nou_mana_sobre_la_serie(self):  # Vlarac, 01/11/2026: reclames un de la wishlist i enganxes només el harem
         self.write("series/HP.txt", "Hedwig\nDobby 💞 => pep\n")
         self.write("wishlist.txt", "Hedwig\n")
         mudae.save_paste("harem", "", "Hedwig - HP\n")
@@ -400,7 +400,7 @@ class Excel(Base):
 
 
 class Genere(Base):
-    """$imaa+osh= / $imaa+osw= / $imaa+oswh: el gènere de cada personatge (mostres reals de Victor, 21/11/2026)."""
+    """$imaa+osh= / $imaa+osw= / $imaa+oswh: el gènere de cada personatge (mostres reals de Vlarac, 21/11/2026)."""
 
     def setUp(self):
         super().setUp()
