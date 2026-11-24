@@ -3569,7 +3569,7 @@ def make_shortcut():
         raise RuntimeError(t("No he pogut crear l'accés directe a l'escriptori."))
 
 
-REPO_ZIP = "https://github.com/Vlarac03/mudae-dashboard/archive/refs/heads/main.zip"
+REPO_ZIP = "https://github.com/Vlarac03/MudaeDashboard/archive/refs/heads/main.zip"
 
 
 def github_files():
