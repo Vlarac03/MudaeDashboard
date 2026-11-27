@@ -1380,7 +1380,7 @@ PERKS = {1: "Més probabilitat que surtin els personatges del costat a la teva w
          7: "Els botons de kakera poden passar a kakera del caos",
          8: "El primer cop del dia: 4 botons de kakera a meitat de poder, només per a tu",
          9: "El primer cop del dia: un botó d'esferes", 10: "El primer $oh del dia dona +20 esferes"}
-PERK_GROUPS = [("Funciona cada dia, encara que no et surti el personatge, i se suma: +20 esferes per cada personatge que la té (fins a 100 personatges; després, menys). Es paga en 50 dies", [10]),
+PERK_GROUPS = [("Funciona cada dia, encara que no et surti el personatge, i se suma: +20 esferes per cada personatge que la té, fins a 100; del 101 al 200, +8; del 201 al 300, +4; després, +2. Les 100 primeres es paguen en 50 dies", [10]),
                ("Només quan et surt aquest personatge: posa-les al que et surt més (mira el $mmy)", [4, 5, 2, 3]),
                ("Només el primer cop del dia que te'l treus", [8, 9]),
                ("Les menys útils", [1, 6, 7])]
@@ -1826,6 +1826,10 @@ function readMudae(text, tv) {
   }
   return out;
 }
+// La millora 10 dona menys com més personatges la tenen (wiki, «Ourospheres»): +20 els 100 primers, +8 fins a 200, +4 fins a 300 i +2 després
+const p10Spheres = n => 20 * n - 12 * Math.max(0, n - 100) - 4 * Math.max(0, n - 200) - 2 * Math.max(0, n - 300);
+// i al revés: quants personatges la tenen, segons les esferes del $oh que diu el $bonus
+const p10Count = e => Math.round(e <= 2000 ? e / 20 : e <= 2800 ? 100 + (e - 2000) / 8 : e <= 3200 ? 200 + (e - 2800) / 4 : 300 + (e - 3200) / 2);
 // Del $bonus, el que fa servir el tauler: poder màxim i el que gasta cada botó de kakera, esferes del $oh i hores del $rt
 // shortcut: etiquetes en castellà (les de Vlarac) i en anglès suposat; mirar-ho amb un $bonus en anglès
 function bonusFacts(B) {
@@ -1971,8 +1975,8 @@ function millDraw() {
   const BF = bonusFacts(M.bonus), li = s => '<li>' + esc(s) + '</li>', bl = [];
   if (BF.pmax && BF.pcost) bl.push(li(T('Amb el poder ple ({p} %) pots reaccionar a {n} botons de kakera: cadascun en gasta {c} %.', { p: BF.pmax, n: Math.floor(BF.pmax / BF.pcost), c: BF.pcost })));
   if (BF.oh != null) {
-    const n = Math.round(BF.oh / 20), seen = Object.values(M.opps || {}).filter(lv => lv[9] >= 1).length;
-    bl.push(li(T('El primer $oh del dia et dona +{e} esferes: tens {n} personatges amb la millora 10 (+20 cadascun).', { e: BF.oh, n })
+    const n = p10Count(BF.oh), seen = Object.values(M.opps || {}).filter(lv => lv[9] >= 1).length;
+    bl.push(li(T('El primer $oh del dia et dona +{e} esferes: tens {n} personatges amb la millora 10 (+20 cadascun els 100 primers; després, menys).', { e: BF.oh, n })
       + (seen < n ? ' ' + T("Al tauler n'hi ha {m}: enganxa el $opp dels que falten.", { m: seen }) : '')));
   }
   if (BF.rt != null) bl.push(li(T('El $rt et torna cada {n} h: el tauler ja ho fa servir a «Què toca ara».', { n: BF.rt })));
@@ -2050,7 +2054,7 @@ function millDraw() {
   // fins a 100 personatges (després, 8), i es paga en 50 dies. Les 1-9 només funcionen quan et surt el personatge: només als que et surten sovint.
   const keyOf = Object.fromEntries(M.keys || []), kOpp = M.opp ? keyOf[M.opp.name] || 0 : 0, often = kOpp >= KEYS_OFTEN;
   const has10 = Object.entries(M.opps || {}).filter(([, lv]) => lv[9] >= 1).map(([n]) => n);
-  const n10 = Math.max(has10.length, BF.oh != null ? Math.round(BF.oh / 20) : 0);  // el $bonus els compta tots, també els que no has enganxat
+  const n10 = Math.max(has10.length, BF.oh != null ? p10Count(BF.oh) : 0);  // el $bonus els compta tots, també els que no has enganxat
   // on posar la 10: personatges de les teves col·leccions (no els regalaràs), primer els que tenen més claus
   const mineColl = typeof COLL === 'undefined' ? [] : Object.values(COLL).flat().filter(c => c.st === 'Meu').map(c => c.n);
   // fins on la 10: a tots els personatges de les teves col·leccions, i com a molt a 100 (després en dona 8). Llavors, para i passa a la botiga.
@@ -2087,7 +2091,7 @@ function millDraw() {
       + put10([name, ...cands].slice(0, Math.max(1, Math.min(4, Math.floor(budget / 1000)))), budget);
     if (budget >= 1000) ready.push(['perkBox', T('Esferes'), '$or ' + name + ' · ' + T('Millora {n}', { n: 10 }), 1000]);
   } else {
-    const buys = nextBuys(M.opp.levels, done10 && (often || stage3) ? POST10 : often || stage3 ? PORD : [10], perkMax, perkCost);
+    const buys = nextBuys(M.opp.levels, done10 && (often || stage3) ? POST10 : often || stage3 ? PORD : n10 < 100 ? [10] : [], perkMax, perkCost);
     perkHtml = buyList(buys, ('$opp ' + M.opp.name).trim(), PDESC, 'perk');
     if (buys.length && M.sp >= buys[0].cost) ready.push(['perkBox', T('Esferes'), `${M.opp.name} · ${T('Millora {n}', { n: buys[0].n })} · LVL ${buys[0].l}`, buys[0].cost]);
     if (!perkHtml && !often && !stage3) {  // aquest ja té la 10: la 10, a uns altres, o, si ja la tenen tots, la botiga
@@ -2118,7 +2122,7 @@ function millDraw() {
   const ops = Object.entries(M.opps || {}).filter(([, lv]) => lv.some(v => v > 0));
   const p10 = ops.filter(([, lv]) => lv[9] >= 1).length;
   $id('perkList').innerHTML = !ops.length ? esc(T('Encara no has enganxat cap personatge millorat.'))
-    : esc(T('Amb la millora 10: {n} (+{e} esferes al primer $oh del dia)', { n: p10, e: p10 * 20 })) + '<br>'
+    : esc(T('Amb la millora 10: {n} (+{e} esferes al primer $oh del dia)', { n: p10, e: p10Spheres(p10) })) + '<br>'
       + ops.map(([name, lv]) => `<button class="cmd" data-copy="${esc('$opp ' + name)}">${esc(name)}</button> <span class="muted" style="font-size:13px">${lv.map((v, i) => v ? (i + 1) + ':' + v : '').filter(Boolean).join(' ')}</span>`).join('<br>');
   document.querySelectorAll('[data-shop]').forEach(el => {
     const v = M.shop ? M.shop[+el.dataset.shop - 1] : undefined;

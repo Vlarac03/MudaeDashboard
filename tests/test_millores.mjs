@@ -89,6 +89,10 @@ assert.deepEqual(refundPlan(lv({ 4: 4, 10: 1 })), { total: 3000, back: 2700, fre
 assert.equal(refundPlan(lv({ 10: 1 })), null);             // només la 10: no hi ha res a tornar
 assert.equal(refundPlan(lv({ 4: 1, 10: 1 })), null);       // 1.200 → 1.080, i amb la 10 de nou en queden 80: no val la pena
 assert.deepEqual(refundPlan(lv({ 8: 1, 9: 1 })), { total: 2000, back: 1800, free: 1800 });
+// la millora 10 per trams (wiki): 100 × 20, 100 × 8, 100 × 4 i després 2
+const [p10Spheres, p10Count] = new Function([js.match(/const p10Spheres = .*/)[0], js.match(/const p10Count = .*/)[0], 'return [p10Spheres, p10Count];'].join(';'))();
+assert.deepEqual([2, 100, 101, 200, 201, 300, 301, 600].map(p10Spheres), [40, 2000, 2008, 2800, 2804, 3200, 3202, 3800]);
+for (let n = 0; n <= 600; n++) assert.equal(p10Count(p10Spheres(n)), n);
 // les compres d'esferes recomanades: la primera de l'ordre que no és al màxim, nivell a nivell
 const [nextBuys, perkMax, perkCost, shopMax, shopCost] = new Function(costs + '\n' + fn('nextBuys') + 'return [nextBuys, perkMax, perkCost, shopMax, shopCost];')();
 const PORD = [10, 4, 5, 2, 3, 8, 9, 1, 6, 7];
